@@ -1,0 +1,24 @@
+Bundle-Name: Water OSGi JPA Repository Bundle
+Bundle-SymbolicName: Water-JpaRepository-osgi-bundle
+Import-Package: \
+    org.osgi.framework.*,\
+    org.osgi.service.*,\
+    org.osgi.util.*,\
+    org.slf4j.*,\
+    org.apache.aries.jpa.*,\
+    org.apache.aries.cdi.spi,\
+    org.hibernate.annotations;version='[5,6)',\
+    org.hibernate.proxy;version='[5,6)',\
+    org.hibernate.validator;version='${range;[=,+)}',\
+    org.hibernate.validator.*;version='${range;[=,+)}',\
+    jakarta.validation,\
+    jakarta.validation.*,\
+    javassist.util.proxy,\
+    javax.persistence,\
+    javax.transaction,\
+    javax.enterprise.*,\
+    javax.persistence.*,\
+    it.water.*
+DynamicImport-Package: *
+Export-Package: it.water.repository.*
+-cdiannotations: *;discover=annotated_by_bean

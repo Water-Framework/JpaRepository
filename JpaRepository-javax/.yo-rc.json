@@ -1,0 +1,10 @@
+{
+    "generator-water": {
+        "inner-project": true,
+        "project-type": "custom",
+        "projectName": "JpaRepository",
+        "projectGroupId": "it.water.repository.jpa",
+        "projectVersion": "3.0.0",
+        "projectFolder": "JpaRepository-javax"
+    }
+}
