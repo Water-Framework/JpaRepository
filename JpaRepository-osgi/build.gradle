@@ -43,7 +43,6 @@ dependencies {
 	testImplementation group: 'it.water.core', name: 'Core-registry', version: project.waterVersion
 	testImplementation group: 'it.water.core', name: 'Core-security', version: project.waterVersion
 	testImplementation group: 'it.water.core', name: 'Core-service', version: project.waterVersion
-	testImplementation group: 'it.water.core', name: 'Core-service-rest', version: project.waterVersion
 	testImplementation group: 'it.water.core', name: 'Core-validation', version: project.waterVersion
 	testImplementation group: 'it.water.implementation', name: 'Implementation-osgi', version: project.waterVersion
 	testImplementation group: "it.water.osgi.test.bundle", name: "Water-osgi-test-bundle", version: project.waterVersion

@@ -22,8 +22,8 @@ import javax.persistence.EntityManager;
 
 public class TestEntityRepository extends BaseJpaRepositoryImpl<TestEntity> {
 
-    public TestEntityRepository(Class<TestEntity> type, EntityManager entityManager) {
-        super(type, entityManager);
+    public TestEntityRepository(Class<TestEntity> type) {
+        super(type);
     }
 
 }

@@ -26,20 +26,22 @@ import it.water.core.api.repository.query.Query;
 import it.water.core.api.repository.query.QueryBuilder;
 import it.water.core.api.repository.query.QueryOrder;
 import it.water.core.api.repository.query.QueryOrderParameter;
+import it.water.core.model.exceptions.WaterRuntimeException;
 import it.water.repository.entity.model.PaginatedResult;
 import it.water.repository.entity.model.exceptions.EntityNotFound;
 import it.water.repository.entity.model.exceptions.NoResultException;
-import it.water.core.model.exceptions.WaterRuntimeException;
-import it.water.repository.query.DefaultQueryBuilder;
 import it.water.repository.jpa.constraints.DuplicateConstraintValidator;
 import it.water.repository.jpa.constraints.RepositoryConstraintValidatorsManager;
 import it.water.repository.jpa.query.PredicateBuilder;
+import it.water.repository.query.DefaultQueryBuilder;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
 import javax.persistence.criteria.*;
 import javax.transaction.Transactional;
 import java.util.ArrayList;
@@ -74,12 +76,29 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
     @Getter(AccessLevel.PROTECTED)
     private EntityManager entityManager;
 
+    /**
+     * Persistence Unit related to the entity manager that must be created for this repository.
+     */
+    private String persistenceUnitName;
+
     protected RepositoryConstraintValidatorsManager dbConstraintsValidatorManager;
 
+    /**
+     * Generic constructor it will try to load an entity manager finding persistence.xml inside project path using default persistence unit name
+     *
+     * @param type
+     */
     protected BaseJpaRepositoryImpl(Class<T> type) {
-        this.type = type;
-        this.dbConstraintsValidatorManager = new RepositoryConstraintValidatorsManager(new DuplicateConstraintValidator());
-        this.entityManager = null;
+        this.initJpaRepository(type, null, initDefaultEntityManager(this.persistenceUnitName), new DuplicateConstraintValidator());
+    }
+
+    /**
+     * Generic constructor it will try to load an entity manager finding persistence.xml inside project path using the specified persistence unit name
+     *
+     * @param type
+     */
+    protected BaseJpaRepositoryImpl(Class<T> type, String persistenceUnitName) {
+        this.initJpaRepository(type, persistenceUnitName, initDefaultEntityManager(this.persistenceUnitName), new DuplicateConstraintValidator());
     }
 
     /**
@@ -88,16 +107,31 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
      * @param type parameter that indicates a generic entity
      */
     protected BaseJpaRepositoryImpl(Class<T> type, EntityManager entityManager) {
-        this.type = type;
-        this.dbConstraintsValidatorManager = new RepositoryConstraintValidatorsManager(new DuplicateConstraintValidator());
-        this.entityManager = entityManager;
+        this.initJpaRepository(type, persistenceUnitName, entityManager, new DuplicateConstraintValidator());
     }
 
     protected BaseJpaRepositoryImpl(Class<T> type, EntityManager entityManager, RepositoryConstraintValidator... dbConstraintValidators) {
         this(type, entityManager);
+        this.initJpaRepository(type, persistenceUnitName, entityManager, dbConstraintValidators);
+    }
+
+    private void initJpaRepository(Class<T> type, String persistenceUnitName, EntityManager entityManager, RepositoryConstraintValidator... dbConstraintValidators) {
+        if (persistenceUnitName == null || persistenceUnitName.isBlank())
+            this.persistenceUnitName = "water-respository";
+        this.type = type;
+        this.entityManager = entityManager;
         this.dbConstraintsValidatorManager = new RepositoryConstraintValidatorsManager(dbConstraintValidators);
     }
 
+    private EntityManager initDefaultEntityManager(String persistenceUnitName) {
+        try {
+            EntityManagerFactory emFactory = Persistence.createEntityManagerFactory(persistenceUnitName);
+            return emFactory.createEntityManager();
+        } catch (Exception e) {
+            getLog().warn(e.getMessage(), e);
+        }
+        return null;
+    }
 
     /**
      * Save an entity in database
