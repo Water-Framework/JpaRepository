@@ -18,6 +18,10 @@ package it.water.repository.jpa.api;
 
 import javax.persistence.EntityManager;
 
+/**
+ * @Author Aristide Cittadino
+ * Class used for exposing utility methods specific of javax.persistence.
+ */
 public interface JpaRepository {
     EntityManager getEntityManager();
 }
