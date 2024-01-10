@@ -30,6 +30,7 @@ import it.water.core.model.exceptions.WaterRuntimeException;
 import it.water.repository.entity.model.PaginatedResult;
 import it.water.repository.entity.model.exceptions.EntityNotFound;
 import it.water.repository.entity.model.exceptions.NoResultException;
+import it.water.repository.jpa.api.JpaRepository;
 import it.water.repository.jpa.constraints.DuplicateConstraintValidator;
 import it.water.repository.jpa.constraints.RepositoryConstraintValidatorsManager;
 import it.water.repository.jpa.query.PredicateBuilder;
@@ -44,9 +45,11 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 import javax.persistence.criteria.*;
 import javax.transaction.Transactional;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Properties;
 
 
 /**
@@ -58,7 +61,7 @@ import java.util.List;
  * @Author Aristide Cittadino.
  */
 @Transactional
-public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements BaseRepository<T> {
+public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements BaseRepository<T>, JpaRepository {
     @Getter(AccessLevel.PROTECTED)
     private Logger log = LoggerFactory.getLogger(BaseJpaRepositoryImpl.class.getName());
 
@@ -73,7 +76,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
      * and let children classes to set how to retrieve it. For Example in OSGi contest it will be retrieved
      * in concrete repository classes using the @PersistenceUnit EntityManagerFactor.createEntityManager
      */
-    @Getter(AccessLevel.PROTECTED)
+    @Getter(AccessLevel.PUBLIC)
     private EntityManager entityManager;
 
     /**
@@ -89,7 +92,8 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
      * @param type
      */
     protected BaseJpaRepositoryImpl(Class<T> type) {
-        this.initJpaRepository(type, null, initDefaultEntityManager(this.persistenceUnitName), new DuplicateConstraintValidator());
+        this.persistenceUnitName = "water-default-persistence-unit";
+        this.initJpaRepository(type, initDefaultEntityManager(), new DuplicateConstraintValidator());
     }
 
     /**
@@ -98,7 +102,8 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
      * @param type
      */
     protected BaseJpaRepositoryImpl(Class<T> type, String persistenceUnitName) {
-        this.initJpaRepository(type, persistenceUnitName, initDefaultEntityManager(this.persistenceUnitName), new DuplicateConstraintValidator());
+        this.persistenceUnitName = persistenceUnitName;
+        this.initJpaRepository(type, initDefaultEntityManager(), new DuplicateConstraintValidator());
     }
 
     /**
@@ -107,25 +112,22 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
      * @param type parameter that indicates a generic entity
      */
     protected BaseJpaRepositoryImpl(Class<T> type, EntityManager entityManager) {
-        this.initJpaRepository(type, persistenceUnitName, entityManager, new DuplicateConstraintValidator());
+        this.initJpaRepository(type, entityManager, new DuplicateConstraintValidator());
     }
 
     protected BaseJpaRepositoryImpl(Class<T> type, EntityManager entityManager, RepositoryConstraintValidator... dbConstraintValidators) {
-        this(type, entityManager);
-        this.initJpaRepository(type, persistenceUnitName, entityManager, dbConstraintValidators);
+        this.initJpaRepository(type, entityManager, dbConstraintValidators);
     }
 
-    private void initJpaRepository(Class<T> type, String persistenceUnitName, EntityManager entityManager, RepositoryConstraintValidator... dbConstraintValidators) {
-        if (persistenceUnitName == null || persistenceUnitName.isBlank())
-            this.persistenceUnitName = "water-respository";
+    private void initJpaRepository(Class<T> type, EntityManager entityManager, RepositoryConstraintValidator... dbConstraintValidators) {
         this.type = type;
         this.entityManager = entityManager;
         this.dbConstraintsValidatorManager = new RepositoryConstraintValidatorsManager(dbConstraintValidators);
     }
 
-    private EntityManager initDefaultEntityManager(String persistenceUnitName) {
+    private EntityManager initDefaultEntityManager() {
         try {
-            EntityManagerFactory emFactory = Persistence.createEntityManagerFactory(persistenceUnitName);
+            EntityManagerFactory emFactory = Persistence.createEntityManagerFactory(this.persistenceUnitName);
             return emFactory.createEntityManager();
         } catch (Exception e) {
             getLog().warn(e.getMessage(), e);
