@@ -45,11 +45,7 @@ import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 import javax.persistence.criteria.*;
 import javax.transaction.Transactional;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 
 /**
@@ -78,6 +74,13 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
      */
     @Getter(AccessLevel.PUBLIC)
     private EntityManager entityManager;
+
+    /**
+     * Global initialized entity managers if they are not provided from the constructor.
+     * this map saves each entity manager based on the persistence unit name in order to not create more entity manager
+     * than the actually defined persistence unit name
+     */
+    private static Map<String, EntityManager> globalEntityManagers = new HashMap<>();
 
     /**
      * Persistence Unit related to the entity manager that must be created for this repository.
@@ -125,14 +128,46 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
         this.dbConstraintsValidatorManager = new RepositoryConstraintValidatorsManager(dbConstraintValidators);
     }
 
-    private EntityManager initDefaultEntityManager() {
-        try {
-            EntityManagerFactory emFactory = Persistence.createEntityManagerFactory(this.persistenceUnitName);
-            return emFactory.createEntityManager();
-        } catch (Exception e) {
-            getLog().warn(e.getMessage(), e);
+    private synchronized EntityManager initDefaultEntityManager() {
+        if (!globalEntityManagers.containsKey(this.persistenceUnitName)) {
+            try {
+                EntityManagerFactory emFactory = Persistence.createEntityManagerFactory(this.persistenceUnitName);
+                globalEntityManagers.put(this.persistenceUnitName, emFactory.createEntityManager());
+            } catch (Exception e) {
+                globalEntityManagers.remove(this.persistenceUnitName);
+                getLog().warn(e.getMessage(), e);
+                return null;
+            }
         }
-        return null;
+        return globalEntityManagers.get(this.persistenceUnitName);
+    }
+
+    /**
+     * Identifies if the current context supports transaction or not.
+     * For example in test environment where no application server is running transactional annotation won't work
+     * Used on method with tx Type Required, this means that when we enter in this method there should be an active transaction
+     * @return
+     */
+    private boolean isTransactionalSupported() {
+        return getEntityManager().isJoinedToTransaction() || getEntityManager().getTransaction().isActive();
+    }
+
+    /**
+     * Identifies if the current context supports transaction or not.
+     * For example in test environment where no application server is running transactional annotation won't work
+     */
+    private void startTransactionIfNeeded() {
+        if (!isTransactionalSupported())
+            getEntityManager().getTransaction().begin();
+    }
+
+    /**
+     * Identifies if the current context supports transaction or not.
+     * For example in test environment where no application server is running transactional annotation won't work
+     */
+    private void commitTransactionIfNeeded() {
+        if (!isTransactionalSupported())
+            getEntityManager().getTransaction().commit();
     }
 
     /**
@@ -141,13 +176,23 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
     @Override
     @Transactional(Transactional.TxType.REQUIRED)
     public T persist(T entity) {
-        EntityManager em = getEntityManager();
-        log.debug("Repository Saving entity {}: {}", this.type.getSimpleName(), entity);
-        this.dbConstraintsValidatorManager.runCheck(entity, this.type, this);
-        log.debug("Transaction found, invoke persist");
-        em.persist(entity);
-        log.debug("Entity persisted: {}", entity);
-        return entity;
+        startTransactionIfNeeded();
+        try {
+            EntityManager em = getEntityManager();
+            log.debug("Repository Saving entity {}: {}", this.type.getSimpleName(), entity);
+            this.dbConstraintsValidatorManager.runCheck(entity, this.type, this);
+            log.debug("Transaction found, invoke persist");
+            em.persist(entity);
+            log.debug("Entity persisted: {}", entity);
+            commitTransactionIfNeeded();
+            return entity;
+        } catch (RuntimeException e) {
+            //only in context where @transactional is not supported
+            if (!isTransactionalSupported()) {
+                getEntityManager().getTransaction().rollback();
+            }
+            throw e;
+        }
     }
 
     /**
@@ -156,23 +201,33 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
     @Override
     @Transactional(Transactional.TxType.REQUIRED)
     public T update(T entity) {
-        EntityManager em = getEntityManager();
-        log.debug("Repository Update entity {}: {}", this.type.getSimpleName(), entity);
-        this.dbConstraintsValidatorManager.runCheck(entity, this.type, this);
-        //Enforcing the concept that the owner cannot be changed
-        //TO DO: check if it is useful or not
-        T entityFromDb = find(entity.getId());
-        if (entityFromDb instanceof OwnedResource) {
-            OwnedResource ownedFromDb = (OwnedResource) entityFromDb;
-            User oldOwner = ownedFromDb.getUserOwner();
-            OwnedResource owned = (OwnedResource) entity;
-            owned.setUserOwner(oldOwner);
-        }
-        if (entity.getId() > 0) {
-            log.debug("Transaction found, invoke find and merge");
-            T updateEntity = em.merge(entity);
-            log.debug("Entity merged: {}", entity);
-            return updateEntity;
+        try {
+            startTransactionIfNeeded();
+            EntityManager em = getEntityManager();
+            log.debug("Repository Update entity {}: {}", this.type.getSimpleName(), entity);
+            this.dbConstraintsValidatorManager.runCheck(entity, this.type, this);
+            //Enforcing the concept that the owner cannot be changed
+            //TO DO: check if it is useful or not
+            T entityFromDb = find(entity.getId());
+            if (entityFromDb instanceof OwnedResource) {
+                OwnedResource ownedFromDb = (OwnedResource) entityFromDb;
+                User oldOwner = ownedFromDb.getUserOwner();
+                OwnedResource owned = (OwnedResource) entity;
+                owned.setUserOwner(oldOwner);
+            }
+            if (entity.getId() > 0) {
+                log.debug("Transaction found, invoke find and merge");
+                T updateEntity = em.merge(entity);
+                log.debug("Entity merged: {}", entity);
+                commitTransactionIfNeeded();
+                return updateEntity;
+            }
+        } catch (RuntimeException e) {
+            //only in context where @transactional is not supported
+            if (!isTransactionalSupported()) {
+                getEntityManager().getTransaction().rollback();
+            }
+            throw e;
         }
         throw new EntityNotFound();
     }
@@ -183,11 +238,21 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
     @Override
     @Transactional(Transactional.TxType.REQUIRED)
     public void remove(long id) {
-        EntityManager em = getEntityManager();
-        log.debug("Repository Remove entity {} with id: {}", this.type.getSimpleName(), id);
-        T entity = em.find(type, id);
-        em.remove(entity);
-        log.debug("Entity {}  with id: {}  removed", this.type.getSimpleName(), id);
+        try {
+            startTransactionIfNeeded();
+            EntityManager em = getEntityManager();
+            log.debug("Repository Remove entity {} with id: {}", this.type.getSimpleName(), id);
+            T entity = em.find(type, id);
+            em.remove(entity);
+            log.debug("Entity {}  with id: {}  removed", this.type.getSimpleName(), id);
+            commitTransactionIfNeeded();
+        } catch (RuntimeException e) {
+            //only in context where @transactional is not supported
+            if (!isTransactionalSupported()) {
+                getEntityManager().getTransaction().rollback();
+            }
+            throw e;
+        }
     }
 
     @Override
