@@ -18,7 +18,6 @@ package it.water.repository.jpa.model;
 
 import it.water.core.api.model.BaseEntity;
 import it.water.repository.entity.model.AbstractEntity;
-import jakarta.validation.constraints.NotNull;
 
 import javax.persistence.*;
 import java.time.Instant;
@@ -48,7 +47,6 @@ public abstract class AbstractJpaEntity extends AbstractEntity
 
     @Override
     @Version
-    @NotNull
     @Column(name = "entity_version", columnDefinition = "INTEGER default 1")
     public int getEntityVersion() {
         return entityVersion;

@@ -4,8 +4,6 @@ dependencies {
 	implementation group: 'org.slf4j', name: 'slf4j-api', version: project.slf4jVersion
 	implementation group: 'javax.persistence', name: 'javax.persistence-api', version: project.javaxPersistenceVersion
 	implementation group: 'javax.transaction', name: 'javax.transaction-api', version: project.javaxTransactionApiVersion
-	implementation group: 'jakarta.validation', name: 'jakarta.validation-api', version: project.jakartaValidationVersion
-
 	//lombok
 	implementation group: 'org.projectlombok', name: 'lombok', version: project.lombokVersion
 	annotationProcessor 'org.projectlombok:lombok:'+project.lombokVersion
@@ -27,7 +25,7 @@ dependencies {
 	testImplementation 'org.hibernate:hibernate-core:'+project.hibernateVersion
 	testImplementation 'javax.persistence:javax.persistence-api:'+project.javaxPersistenceVersion
 	testImplementation 'org.hsqldb:hsqldb:2.4.1'
-	testImplementation 'javax.validation:validation-api:2.0.1.Final'
+	testImplementation 'javax.validation:validation-api:'+project.javaxValidationVersion
 }
 
 test {

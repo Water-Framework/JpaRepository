@@ -20,7 +20,7 @@
                                  http://xmlns.jcp.org/xml/ns/persistence/persistence_2_2.xsd"
              version="2.2">
 
-    <persistence-unit name="water-respository" transaction-type="RESOURCE_LOCAL">
+    <persistence-unit name="water-default-persistence-unit" transaction-type="RESOURCE_LOCAL">
         <class>it.water.repository.jpa.entity.TestEntity</class>
         <properties>
             <!-- Configurazione della connessione al database -->

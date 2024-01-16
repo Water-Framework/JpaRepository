@@ -78,6 +78,8 @@ class SpringApplicationTest {
     ServiceTest serviceTest;
     @Autowired
     ApplicationProperties waterApplicationProperties;
+    @Autowired
+    SpringSystemServiceApi springSystemServiceApi;
 
     @Test
     void initSpringApplication() {
@@ -243,7 +245,6 @@ class SpringApplicationTest {
         TestEntity testEntity = new TestEntity(maliutiousField, FIELD2_NAME);
         //using save method of wtf base repository
         assertThrows(ValidationException.class, () -> entitySystemApi.save(testEntity));
-        SpringSystemServiceApi springSystemServiceApi = new SpringSystemServiceApi();
         assertThrows(ValidationException.class, () -> springSystemServiceApi.elaborateResource(testEntity));
     }
 

@@ -21,12 +21,12 @@ import it.water.core.api.repository.BaseRepository;
 import it.water.repository.jpa.spring.bundle.api.JpaTestEntityRepository;
 import it.water.repository.jpa.spring.bundle.api.TestEntitySystemApi;
 import it.water.repository.jpa.spring.bundle.persistence.entity.TestEntity;
-import it.water.repository.service.javax.EntitySystemServiceImpl;
+import it.water.repository.service.BaseEntitySystemServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
-public class TestEntitySystemServiceImpl extends EntitySystemServiceImpl<TestEntity> implements TestEntitySystemApi {
+public class TestEntitySystemServiceImpl extends BaseEntitySystemServiceImpl<TestEntity> implements TestEntitySystemApi {
     @Autowired
     private JpaTestEntityRepository repository;
 

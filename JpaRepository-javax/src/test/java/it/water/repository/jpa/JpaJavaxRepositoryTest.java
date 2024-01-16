@@ -34,7 +34,7 @@ import java.util.List;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class JpaJavaxRepositoryTest {
+class JpaJavaxRepositoryTest {
     private TestEntityRepository testEntityRepository;
 
     @Test
@@ -69,7 +69,6 @@ public class JpaJavaxRepositoryTest {
     @Order(2)
     void testDuplicateFails() {
         TestEntity entity = new TestEntity();
-        getRepositoryTest().getEntityManager().getTransaction().begin();
         entity.setUniqueField("a");
         TestEntityRepository testRepo = getRepositoryTest();
         Assertions.assertThrows(DuplicateEntityException.class, () -> {
@@ -88,7 +87,6 @@ public class JpaJavaxRepositoryTest {
         entity.setCombinedUniqueField2("c");
         getRepositoryTest().persist(entity);
         Assertions.assertTrue(entity.getId() > 0);
-        getRepositoryTest().getEntityManager().getTransaction().commit();
     }
 
     @Test
@@ -124,10 +122,8 @@ public class JpaJavaxRepositoryTest {
         TestEntity foundEntity = getRepositoryTest().find(getRepositoryTest().getQueryBuilderInstance().field("uniqueField").equalTo("a"));
         //find by id
         Assertions.assertNotNull(getRepositoryTest().find(foundEntity.getId()));
-        getRepositoryTest().getEntityManager().getTransaction().begin();
         foundEntity.setUniqueField("a2");
         getRepositoryTest().update(foundEntity);
-        getRepositoryTest().getEntityManager().getTransaction().commit();
         Assertions.assertEquals("a2", getRepositoryTest().find(foundEntity.getId()).getUniqueField());
         TestEntityRepository testRepo = getRepositoryTest();
         Query q = getRepositoryTest().getQueryBuilderInstance().field("uniqueField").equalTo("a");
@@ -143,12 +139,10 @@ public class JpaJavaxRepositoryTest {
         newEntity.setUniqueField("uniqueField");
         newEntity.setCombinedUniqueField1("uniqueCombined1");
         newEntity.setCombinedUniqueField2("uniqueCombined12");
-        getRepositoryTest().getEntityManager().getTransaction().begin();
         getRepositoryTest().persist(newEntity);
         long entityId = newEntity.getId();
         getRepositoryTest().getEntityManager().flush();
         getRepositoryTest().remove(entityId);
-        getRepositoryTest().getEntityManager().getTransaction().commit();
         TestEntityRepository testRepo = getRepositoryTest();
         Assertions.assertThrows(it.water.repository.entity.model.exceptions.NoResultException.class, () -> {
             testRepo.find(entityId);
@@ -162,12 +156,10 @@ public class JpaJavaxRepositoryTest {
         newEntity.setUniqueField("uniqueField");
         newEntity.setCombinedUniqueField1("uniqueCombined1");
         newEntity.setCombinedUniqueField2("uniqueCombined12");
-        getRepositoryTest().getEntityManager().getTransaction().begin();
         getRepositoryTest().persist(newEntity);
         long entityId = newEntity.getId();
         getRepositoryTest().getEntityManager().flush();
         getRepositoryTest().remove(newEntity);
-        getRepositoryTest().getEntityManager().getTransaction().commit();
         TestEntityRepository testRepo = getRepositoryTest();
         Assertions.assertThrows(it.water.repository.entity.model.exceptions.NoResultException.class, () -> {
             testRepo.find(entityId);
@@ -185,7 +177,6 @@ public class JpaJavaxRepositoryTest {
         newEntity.setUniqueField("uniqueField1");
         newEntity.setCombinedUniqueField1("uniqueCombined3");
         newEntity.setCombinedUniqueField2("uniqueCombined4");
-        getRepositoryTest().getEntityManager().getTransaction().begin();
         getRepositoryTest().persist(newEntity);
         getRepositoryTest().persist(newEntity1);
         getRepositoryTest().getEntityManager().flush();
@@ -195,7 +186,6 @@ public class JpaJavaxRepositoryTest {
         ids.add(entityId);
         ids.add(entity1Id);
         getRepositoryTest().removeAllByIds(ids);
-        getRepositoryTest().getEntityManager().getTransaction().commit();
         TestEntityRepository testRepo = getRepositoryTest();
         Assertions.assertThrows(it.water.repository.entity.model.exceptions.NoResultException.class, () -> {
             testRepo.find(entityId);
@@ -216,7 +206,6 @@ public class JpaJavaxRepositoryTest {
         newEntity.setUniqueField("uniqueField1");
         newEntity.setCombinedUniqueField1("uniqueCombined3");
         newEntity.setCombinedUniqueField2("uniqueCombined4");
-        getRepositoryTest().getEntityManager().getTransaction().begin();
         getRepositoryTest().persist(newEntity);
         getRepositoryTest().persist(newEntity1);
         getRepositoryTest().getEntityManager().flush();
@@ -226,7 +215,6 @@ public class JpaJavaxRepositoryTest {
         entities.add(newEntity);
         entities.add(newEntity1);
         getRepositoryTest().removeAll(entities);
-        getRepositoryTest().getEntityManager().getTransaction().commit();
         TestEntityRepository testRepo = getRepositoryTest();
         Assertions.assertThrows(it.water.repository.entity.model.exceptions.NoResultException.class, () -> {
             testRepo.find(entityId);
@@ -239,9 +227,7 @@ public class JpaJavaxRepositoryTest {
     @Test
     @Order(8)
     void testRemoveAll() {
-        getRepositoryTest().getEntityManager().getTransaction().begin();
         getRepositoryTest().removeAll();
-        getRepositoryTest().getEntityManager().getTransaction().commit();
         Assertions.assertEquals(0, getRepositoryTest().findAll(1, 1, null, null).getResults().size());
     }
 

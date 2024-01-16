@@ -18,8 +18,6 @@ package it.water.repository.jpa.repository;
 import it.water.repository.jpa.BaseJpaRepositoryImpl;
 import it.water.repository.jpa.entity.TestEntity;
 
-import javax.persistence.EntityManager;
-
 public class TestEntityRepository extends BaseJpaRepositoryImpl<TestEntity> {
 
     public TestEntityRepository(Class<TestEntity> type) {

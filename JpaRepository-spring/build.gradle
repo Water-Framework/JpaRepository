@@ -27,7 +27,6 @@ dependencies {
 	implementation group: 'it.water.repository', name: 'Repository-entity', version: project.waterVersion
 	implementation group: 'it.water.repository', name: 'Repository-persistence', version: project.waterVersion
 	implementation group: 'it.water.repository', name: 'Repository-service', version: project.waterVersion
-	implementation group: 'it.water.repository', name: 'Repository-service-javax', version: project.waterVersion
 
 	implementation group: 'it.water.implementation', name: 'Implementation-spring', version: project.waterVersion
 
