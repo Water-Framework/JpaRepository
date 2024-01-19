@@ -48,12 +48,12 @@ public abstract class AbstractJpaEntity extends AbstractEntity
     @Override
     @Version
     @Column(name = "entity_version", columnDefinition = "INTEGER default 1")
-    public int getEntityVersion() {
+    public Integer getEntityVersion() {
         return entityVersion;
     }
 
     @Override
-    public void setEntityVersion(int entityVersion) {
+    public void setEntityVersion(Integer entityVersion) {
         this.entityVersion = entityVersion;
     }
 
