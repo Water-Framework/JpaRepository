@@ -146,6 +146,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
      * Identifies if the current context supports transaction or not.
      * For example in test environment where no application server is running transactional annotation won't work
      * Used on method with tx Type Required, this means that when we enter in this method there should be an active transaction
+     *
      * @return
      */
     private boolean isTransactionalSupported() {
@@ -208,7 +209,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
             this.dbConstraintsValidatorManager.runCheck(entity, this.type, this);
             //Enforcing the concept that the owner cannot be changed
             //TO DO: check if it is useful or not
-            T entityFromDb = find(entity.getId());
+            T entityFromDb = em.find(type, entity.getId());
             if (entityFromDb instanceof OwnedResource) {
                 OwnedResource ownedFromDb = (OwnedResource) entityFromDb;
                 User oldOwner = ownedFromDb.getUserOwner();
@@ -216,8 +217,13 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
                 owned.setUserOwner(oldOwner);
             }
             if (entity.getId() > 0) {
-                log.debug("Transaction found, invoke find and merge");
+                log.debug("Updating entity");
+                boolean upgradeVersionManually = !em.contains(entity);
                 T updateEntity = em.merge(entity);
+                if(upgradeVersionManually) {
+                    //incresing manually version since entities can come basically from non managed contexts (like rest with jackson)
+                    updateEntity.setEntityVersion(updateEntity.getEntityVersion().intValue() + 1);
+                }
                 log.debug("Entity merged: {}", entity);
                 commitTransactionIfNeeded();
                 return updateEntity;
@@ -332,6 +338,8 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
         try {
             T entity = (T) q.getSingleResult();
             log.debug("Found entity: {}", entity);
+            //Detaching entity in order to prevent unwanted logic
+            em.detach(entity);
             return entity;
         } catch (javax.persistence.NoResultException e) {
             throw new it.water.repository.entity.model.exceptions.NoResultException();
