@@ -18,7 +18,7 @@
 package it.water.repository.jpa.spring.bundle.persistence.entity;
 
 
-import it.water.core.validation.javax.annotations.NoMalitiusCode;
+import it.water.core.validation.annotations.NoMalitiusCode;
 import it.water.repository.jpa.model.AbstractJpaEntity;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

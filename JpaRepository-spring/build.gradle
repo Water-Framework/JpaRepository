@@ -28,8 +28,6 @@ dependencies {
 	implementation group: 'it.water.repository', name: 'Repository-persistence', version: project.waterVersion
 	implementation group: 'it.water.repository', name: 'Repository-service', version: project.waterVersion
 
-	implementation group: 'it.water.implementation', name: 'Implementation-spring', version: project.waterVersion
-
 	implementation project(":JpaRepository-javax")
 
 	//Spring for spring source set
@@ -40,6 +38,9 @@ dependencies {
 	implementation 'org.atteo.classindex:classindex:' + project.atteoClassIndexVersion
 	annotationProcessor('org.atteo.classindex:classindex:' + project.atteoClassIndexVersion)
 
+	//needed by spring
+	testImplementation group: 'javax.validation', name: 'validation-api', version: '2.0.1.Final'
+	testImplementation group: 'it.water.implementation', name: 'Implementation-spring', version: project.waterVersion
 	testImplementation 'org.springframework.boot:spring-boot-starter-test:' + project.springBootVersion
 	testImplementation 'org.junit.jupiter:junit-jupiter-api:' + project.junitJupiterVersion
 	testImplementation 'org.junit.jupiter:junit-jupiter-engine:' + project.junitJupiterVersion

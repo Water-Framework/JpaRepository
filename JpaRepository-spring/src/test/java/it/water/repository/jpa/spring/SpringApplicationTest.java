@@ -54,8 +54,6 @@ import java.util.List;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
-
-
 @ExtendWith(SpringExtension.class)
 @TestMethodOrder(MethodOrderer.MethodName.class)
 @SpringBootTest()
@@ -137,7 +135,7 @@ class SpringApplicationTest {
         assertEquals(testEntity, foundEntityWithSpringQuery);
         assertEquals(testEntity, foundWithWaterBaseRepo);
         foundEntityWithSpringQuery.setField1(FIELD_VALUE);
-        entityRepository.save(foundEntityWithSpringQuery);
+        testEntity = entityRepository.save(foundEntityWithSpringQuery);
         assertEquals(FIELD_VALUE, testEntity.getField1());
     }
 
