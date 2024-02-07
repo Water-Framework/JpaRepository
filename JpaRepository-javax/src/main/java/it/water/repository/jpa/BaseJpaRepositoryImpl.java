@@ -150,7 +150,12 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
      * @return
      */
     private boolean isTransactionalSupported() {
-        return getEntityManager().isJoinedToTransaction() || getEntityManager().getTransaction().isActive();
+        //Every eventual exception we have accessing the transaction context means that transaction system is working
+        try {
+            return getEntityManager() != null && (getEntityManager().isJoinedToTransaction() || (getEntityManager().getTransaction() != null && getEntityManager().getTransaction().isActive()));
+        } catch (Exception e){
+            return true;
+        }
     }
 
     /**
@@ -428,7 +433,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
     }
 
     @Override
-    @Transactional
+    @Transactional(Transactional.TxType.SUPPORTS)
     public QueryBuilder getQueryBuilderInstance() {
         return new DefaultQueryBuilder();
     }
