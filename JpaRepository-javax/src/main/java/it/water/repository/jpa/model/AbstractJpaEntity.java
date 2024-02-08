@@ -16,7 +16,10 @@
 
 package it.water.repository.jpa.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonView;
 import it.water.core.api.model.BaseEntity;
+import it.water.core.api.service.rest.WaterJsonView;
 import it.water.repository.entity.model.AbstractEntity;
 
 import javax.persistence.*;
@@ -36,6 +39,7 @@ public abstract class AbstractJpaEntity extends AbstractEntity
     @Override
     @Id
     @GeneratedValue
+    @JsonView({WaterJsonView.Extended.class,WaterJsonView.Compact.class,WaterJsonView.Internal.class,WaterJsonView.Privacy.class,WaterJsonView.Public.class})
     public long getId() {
         return id;
     }
@@ -48,6 +52,7 @@ public abstract class AbstractJpaEntity extends AbstractEntity
     @Override
     @Version
     @Column(name = "entity_version", columnDefinition = "INTEGER default 1")
+    @JsonView({WaterJsonView.Extended.class,WaterJsonView.Compact.class,WaterJsonView.Internal.class,WaterJsonView.Privacy.class,WaterJsonView.Public.class})
     public Integer getEntityVersion() {
         return entityVersion;
     }
@@ -60,6 +65,7 @@ public abstract class AbstractJpaEntity extends AbstractEntity
     @Override
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "entity_create_date")
+    @JsonView({WaterJsonView.Extended.class,WaterJsonView.Compact.class,WaterJsonView.Internal.class,WaterJsonView.Privacy.class,WaterJsonView.Public.class})
     public Date getEntityCreateDate() {
         return entityCreateDate;
     }
@@ -67,15 +73,24 @@ public abstract class AbstractJpaEntity extends AbstractEntity
     @Override
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "entity_modify_date")
+    @JsonView({WaterJsonView.Extended.class,WaterJsonView.Compact.class,WaterJsonView.Internal.class,WaterJsonView.Privacy.class,WaterJsonView.Public.class})
     public Date getEntityModifyDate() {
         return entityModifyDate;
     }
 
     @Override
     @Transient
+    @JsonIgnore
     public String getSystemApiClassName() {
         String className = this.getClass().getName();
         return className.replace(".model.", ".api.") + "SystemApi";
+    }
+
+    @Override
+    @Transient
+    @JsonIgnore
+    public String getResourceName() {
+        return super.getResourceName();
     }
 
     @PreUpdate

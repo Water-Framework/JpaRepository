@@ -7,6 +7,8 @@ dependencies {
 	//lombok
 	implementation group: 'org.projectlombok', name: 'lombok', version: project.lombokVersion
 	annotationProcessor 'org.projectlombok:lombok:'+project.lombokVersion
+	//Jackson for json views
+	implementation group: 'com.fasterxml.jackson.jaxrs', name: 'jackson-jaxrs-json-provider', version: project.jacksonVersion
 
 	implementation group:'it.water.core', name:'Core-api', version:project.waterVersion
 	implementation group:'it.water.core', name:'Core-model', version:project.waterVersion
