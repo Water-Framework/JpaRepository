@@ -1,3 +1,22 @@
+configurations {
+	includeInJar {
+		canBeResolved(true)
+		canBeConsumed(false)
+		transitive false
+	}
+}
+
+sourceSets {
+	main {
+		compileClasspath += configurations.includeInJar
+		runtimeClasspath += configurations.includeInJar
+	}
+
+	test {
+		compileClasspath += configurations.includeInJar
+		runtimeClasspath += configurations.includeInJar
+	}
+}
 
 dependencies {
 	//SLF4J
@@ -13,22 +32,13 @@ dependencies {
 	implementation group: 'javax.transaction', name: 'javax.transaction-api', version: project.javaxTransactionApiVersion
 	//Encryption
 	implementation group: 'org.bouncycastle', name: 'bcmail-jdk15on', version: project.bouncyCastleVersion
+	implementation group: 'it.water.distribution', name: 'Water-distribution-spring', version: project.waterVersion
 
-	implementation group: 'it.water.core', name: 'Core-api', version: project.waterVersion
-	implementation group: 'it.water.core', name: 'Core-bundle', version: project.waterVersion
-	implementation group: 'it.water.core', name: 'Core-interceptors', version: project.waterVersion
-	implementation group: 'it.water.core', name: 'Core-model', version: project.waterVersion
-	implementation group: 'it.water.core', name: 'Core-permission', version: project.waterVersion
-	implementation group: 'it.water.core', name: 'Core-registry', version: project.waterVersion
-	implementation group: 'it.water.core', name: 'Core-security', version: project.waterVersion
-	implementation group: 'it.water.core', name: 'Core-service', version: project.waterVersion
-	implementation group: 'it.water.core', name: 'Core-validation', version: project.waterVersion
-
-	implementation group: 'it.water.repository', name: 'Repository-entity', version: project.waterVersion
-	implementation group: 'it.water.repository', name: 'Repository-persistence', version: project.waterVersion
-	implementation group: 'it.water.repository', name: 'Repository-service', version: project.waterVersion
-
-	implementation project(":JpaRepository-javax")
+	//Avoiding importing core deps since core libs are included inside spring distribution
+	includeInJar ('it.water.repository:Repository-entity:'+project.waterVersion)
+	includeInJar ('it.water.repository:Repository-persistence:'+project.waterVersion)
+	includeInJar ('it.water.repository:Repository-service:'+project.waterVersion)
+	includeInJar (project(":JpaRepository-javax"))
 
 	//Spring for spring source set
 	implementation 'org.springframework.boot:spring-boot-starter-aop:' + project.springBootVersion
@@ -39,7 +49,20 @@ dependencies {
 	annotationProcessor('org.atteo.classindex:classindex:' + project.atteoClassIndexVersion)
 
 	//needed by spring
-	testImplementation group: 'javax.validation', name: 'validation-api', version: '2.0.1.Final'
+	testImplementation group: 'it.water.core', name: 'Core-api', version: project.waterVersion
+	testImplementation group: 'it.water.core', name: 'Core-bundle', version: project.waterVersion
+	testImplementation group: 'it.water.core', name: 'Core-interceptors', version: project.waterVersion
+	testImplementation group: 'it.water.core', name: 'Core-model', version: project.waterVersion
+	testImplementation group: 'it.water.core', name: 'Core-permission', version: project.waterVersion
+	testImplementation group: 'it.water.core', name: 'Core-registry', version: project.waterVersion
+	testImplementation group: 'it.water.core', name: 'Core-security', version: project.waterVersion
+	testImplementation group: 'it.water.core', name: 'Core-service', version: project.waterVersion
+	testImplementation group: 'it.water.core', name: 'Core-validation', version: project.waterVersion
+	testImplementation group: 'it.water.core', name: 'Core-validation-javax', version: project.waterVersion
+	testImplementation group: 'it.water.repository', name: 'Repository-entity', version: project.waterVersion
+	testImplementation group: 'it.water.repository', name: 'Repository-persistence', version: project.waterVersion
+	testImplementation group: 'it.water.repository', name: 'Repository-service', version: project.waterVersion
+	testImplementation project(":JpaRepository-javax")
 	testImplementation group: 'it.water.implementation', name: 'Implementation-spring', version: project.waterVersion
 	testImplementation 'org.springframework.boot:spring-boot-starter-test:' + project.springBootVersion
 	testImplementation 'org.junit.jupiter:junit-jupiter-api:' + project.junitJupiterVersion
@@ -48,6 +71,11 @@ dependencies {
 	testImplementation 'org.hsqldb:hsqldb:2.4.0'
 	testAnnotationProcessor('org.atteo.classindex:classindex:' + project.atteoClassIndexVersion)
 	testAnnotationProcessor 'org.projectlombok:lombok:' + project.lombokVersion
+}
+
+jar {
+	from project.configurations.includeInJar.collect { it.isDirectory() ? it : zipTree(it) }
+	duplicatesStrategy = DuplicatesStrategy.INCLUDE
 }
 
 test {
