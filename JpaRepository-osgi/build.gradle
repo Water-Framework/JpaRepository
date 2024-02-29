@@ -4,32 +4,20 @@ plugins {
 	id "biz.aQute.bnd.builder"
 }
 
-configurations {
-	includeInJar {
-		canBeResolved(true)
-		canBeConsumed(false)
-		transitive false
-	}
-}
-
 dependencies {
 	//SLF4J
     implementation group: 'org.slf4j', name: 'slf4j-api', version: project.slf4jVersion
 	//lombok
     implementation group: 'org.projectlombok', name: 'lombok', version: project.lombokVersion
     annotationProcessor 'org.projectlombok:lombok:'+project.lombokVersion
+	//Validation
+	implementation group: 'jakarta.validation', name: 'jakarta.validation-api', version: project.jakartaValidationVersion
+	implementation group: "org.hibernate", name: "hibernate-validator", version: project.hibernateValidatorVersion
 
-	includeInJar group: 'it.water.repository', name: 'Repository-entity', version: project.waterVersion
-	includeInJar group: 'it.water.repository', name: 'Repository-persistence', version: project.waterVersion
-	includeInJar group: 'it.water.repository', name: 'Repository-service', version: project.waterVersion
-	includeInJar group: 'it.water.repository.jpa', name: 'JpaRepository-javax', version: project.waterVersion
-	includeInJar project(":JpaRepository-javax")
-
-	//Putting on classpath so bnd can find deps
 	implementation group: 'it.water.repository', name: 'Repository-entity', version: project.waterVersion
 	implementation group: 'it.water.repository', name: 'Repository-persistence', version: project.waterVersion
 	implementation group: 'it.water.repository', name: 'Repository-service', version: project.waterVersion
-	implementation group: "org.hibernate", name: "hibernate-validator", version: project.hibernateValidatorVersion
+	implementation group: 'it.water.repository.jpa', name: 'JpaRepository-javax', version: project.waterVersion
 	implementation project(":JpaRepository-javax")
 
 	testImplementation 'javax.persistence:javax.persistence-api:'+project.javaxPersistenceVersion
@@ -42,10 +30,11 @@ dependencies {
 	testImplementation group: 'it.water.core', name: 'Core-security', version: project.waterVersion
 	testImplementation group: 'it.water.core', name: 'Core-service', version: project.waterVersion
 	testImplementation group: 'it.water.core', name: 'Core-validation', version: project.waterVersion
+	testImplementation group: 'it.water.core', name: 'Core-testing-utils', version: project.waterVersion
+	testImplementation 'org.reflections:reflections:0.9.12'
 	testImplementation group: 'it.water.implementation', name: 'Implementation-osgi', version: project.waterVersion
 	testImplementation group: "it.water.osgi.test.bundle", name: "Water-osgi-test-bundle", version: project.waterVersion
 	testImplementation group: "it.water.osgi.test.bundle", name: "Water-osgi-test-bundle-entity", version: project.waterVersion
-	testImplementation group: "org.apache.karaf.itests", name: "common", version: project.karafVersion
 	testImplementation group: "org.apache.karaf.itests", name: "common", version: project.karafVersion
 	testImplementation group: "org.apache.karaf", name: "apache-karaf", version: project.karafVersion
 	testImplementation group: "org.apache.karaf.shell", name: "org.apache.karaf.shell.core", version: project.karafVersion
@@ -64,7 +53,7 @@ test {
  */
 tasks.register("osgiBundle", Bundle) {
 	from sourceSets.main.output
-	from project.configurations.includeInJar.collect { it.isDirectory() ? it : zipTree(it) }
+	//from project.configurations.includeInJar.collect { it.isDirectory() ? it : zipTree(it) }
 	bndfile = file("bnd.bnd")
 	sourceSet = sourceSets.main
 	classpath = sourceSets.main.compileClasspath
