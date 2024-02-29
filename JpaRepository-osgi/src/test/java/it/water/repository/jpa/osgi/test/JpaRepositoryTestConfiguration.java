@@ -17,6 +17,8 @@
 
 package it.water.repository.jpa.osgi.test;
 
+//import it.water.implementation.osgi.util.test.karaf.WaterTestConfigurationBuilder;
+
 import it.water.implementation.osgi.util.test.karaf.WaterTestConfigurationBuilder;
 import org.ops4j.pax.exam.ConfigurationFactory;
 import org.ops4j.pax.exam.Option;

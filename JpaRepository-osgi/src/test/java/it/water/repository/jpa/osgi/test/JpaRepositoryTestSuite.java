@@ -16,6 +16,8 @@
 
 package it.water.repository.jpa.osgi.test;
 
+//import it.water.implementation.osgi.util.test.WaterTestRunner;
+
 import it.water.implementation.osgi.util.test.WaterTestRunner;
 import junit.framework.TestSuite;
 import org.junit.runner.RunWith;
