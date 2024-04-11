@@ -18,7 +18,7 @@ dependencies {
     implementation group: 'it.water.repository', name: 'Repository-persistence', version: project.waterVersion
     implementation group: 'it.water.repository', name: 'Repository-service', version: project.waterVersion
     implementation group: 'it.water.repository.jpa', name: 'JpaRepository-javax', version: project.waterVersion
-    implementation group: 'it.water.implementation', name: 'Implementation-osgi', version: project.waterVersion
+    implementation group: 'it.water.distribution', name: 'Water-distribution-osgi', version: project.waterVersion
     implementation group: "it.water.osgi.test.bundle", name: "Water-osgi-test-bundle", version: project.waterVersion
     implementation group: "it.water.osgi.test.bundle", name: "Water-osgi-test-bundle-entity", version: project.waterVersion
     implementation project(":JpaRepository-javax")
