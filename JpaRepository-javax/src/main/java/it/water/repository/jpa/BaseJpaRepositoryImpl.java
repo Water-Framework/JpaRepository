@@ -95,7 +95,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
      * @param type
      */
     protected BaseJpaRepositoryImpl(Class<T> type) {
-        this.persistenceUnitName = "water-default-persistence-unit";
+        this.persistenceUnitName = getPersistenceUnitName();
         this.initJpaRepository(type, initDefaultEntityManager(), new DuplicateConstraintValidator());
     }
 
@@ -153,7 +153,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
         //Every eventual exception we have accessing the transaction context means that transaction system is working
         try {
             return getEntityManager() != null && (getEntityManager().isJoinedToTransaction() || (getEntityManager().getTransaction() != null && getEntityManager().getTransaction().isActive()));
-        } catch (Exception e){
+        } catch (Exception e) {
             return true;
         }
     }
@@ -225,7 +225,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
                 log.debug("Updating entity");
                 boolean upgradeVersionManually = !em.contains(entity);
                 T updateEntity = em.merge(entity);
-                if(upgradeVersionManually) {
+                if (upgradeVersionManually) {
                     //incresing manually version since entities can come basically from non managed contexts (like rest with jackson)
                     updateEntity.setEntityVersion(updateEntity.getEntityVersion().intValue() + 1);
                 }
@@ -436,5 +436,13 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
     @Transactional(Transactional.TxType.SUPPORTS)
     public QueryBuilder getQueryBuilderInstance() {
         return new DefaultQueryBuilder();
+    }
+
+    /**
+     * Define the default persistence unit name
+     * @return
+     */
+    protected String getPersistenceUnitName(){
+        return "water-default-persistence-unit";
     }
 }

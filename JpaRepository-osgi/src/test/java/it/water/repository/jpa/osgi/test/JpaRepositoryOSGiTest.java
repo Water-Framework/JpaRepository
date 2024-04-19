@@ -59,7 +59,7 @@ public class JpaRepositoryOSGiTest extends KarafTestSupport {
     @Test
     public void testRepository() {
         TestEntitySystemApi entitySystemApi = getOsgiService(TestEntitySystemApi.class);
-        EntityManagerFactory entityManagerFactory = getOsgiService(EntityManagerFactory.class, "(osgi.unit.name=water-persistence-unit)", 0);
+        EntityManagerFactory entityManagerFactory = getOsgiService(EntityManagerFactory.class, "(osgi.unit.name=water-default-persistence-unit)", 0);
         EntityManager em = entityManagerFactory.createEntityManager();
         //managing transaction manually since no transaction context is present
         em.getTransaction().begin();

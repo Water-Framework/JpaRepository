@@ -12,9 +12,9 @@ Import-Package: \
     org.hibernate.proxy;version='[5,6)',\
     org.hibernate.validator;version='${range;[=,+)}',\
     org.hibernate.validator.*;version='${range;[=,+)}',\
+    javassist.util.proxy,\
     jakarta.validation,\
     jakarta.validation.*,\
-    javassist.util.proxy,\
     javax.persistence,\
     javax.transaction,\
     javax.enterprise.*,\
