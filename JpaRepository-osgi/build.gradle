@@ -5,15 +5,21 @@ plugins {
 }
 
 dependencies {
+    //OSGi
+    implementation group: "org.osgi", name: "osgi.core", version: project.osgiVersion
+    implementation group: "org.osgi", name: "osgi.cmpn", version: project.osgiCompendiumVersion
+    implementation group: "org.apache.aries.jpa", name: "org.apache.aries.jpa.api", version: project.apacheAriesJpaVersion
     //SLF4J
     implementation group: 'org.slf4j', name: 'slf4j-api', version: project.slf4jVersion
     //lombok
     implementation group: 'org.projectlombok', name: 'lombok', version: project.lombokVersion
     annotationProcessor 'org.projectlombok:lombok:' + project.lombokVersion
+    //javax persistence
+    implementation group: 'javax.persistence', name: 'javax.persistence-api', version: project.javaxPersistenceVersion
+    implementation group: 'javax.transaction', name: 'javax.transaction-api', version: project.javaxTransactionApiVersion
     //Validation
     implementation group: 'jakarta.validation', name: 'jakarta.validation-api', version: project.jakartaValidationVersion
     implementation group: "org.hibernate", name: "hibernate-validator", version: project.hibernateValidatorVersion
-
     implementation group: 'it.water.repository', name: 'Repository-entity', version: project.waterVersion
     implementation group: 'it.water.repository', name: 'Repository-persistence', version: project.waterVersion
     implementation group: 'it.water.repository', name: 'Repository-service', version: project.waterVersion

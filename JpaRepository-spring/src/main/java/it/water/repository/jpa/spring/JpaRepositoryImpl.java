@@ -23,9 +23,8 @@ import it.water.core.api.repository.query.Query;
 import it.water.core.api.repository.query.QueryBuilder;
 import it.water.core.api.repository.query.QueryOrder;
 import it.water.repository.entity.model.exceptions.NoResultException;
-import it.water.repository.query.DefaultQueryBuilder;
-import it.water.repository.jpa.BaseJpaRepositoryImpl;
 import it.water.repository.jpa.model.AbstractJpaEntity;
+import it.water.repository.query.DefaultQueryBuilder;
 import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 
@@ -59,7 +58,7 @@ public class JpaRepositoryImpl<T extends AbstractJpaEntity> extends SimpleJpaRep
      * @param entityManager
      */
     private void initWaterBaseRepository(Class<T> entityClass, EntityManager entityManager) {
-        repository = new BaseJpaRepositoryImpl<T>(entityClass, entityManager) {
+        repository = new SpringBaseJpaRepositoryImpl<>(entityClass, entityManager) {
         };
     }
 

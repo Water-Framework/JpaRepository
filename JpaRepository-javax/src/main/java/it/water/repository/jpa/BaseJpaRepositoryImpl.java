@@ -44,7 +44,6 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 import javax.persistence.criteria.*;
-import javax.transaction.Transactional;
 import java.util.*;
 
 
@@ -56,8 +55,8 @@ import java.util.*;
  *            entities that interact with the platform.
  * @Author Aristide Cittadino.
  */
-@Transactional
 public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements BaseRepository<T>, JpaRepository {
+    public static final String WATER_DEFAULT_PERSISTENCE_UNIT_NAME = "water-default-persistence-unit";
     @Getter(AccessLevel.PROTECTED)
     private Logger log = LoggerFactory.getLogger(BaseJpaRepositoryImpl.class.getName());
 
@@ -95,7 +94,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
      * @param type
      */
     protected BaseJpaRepositoryImpl(Class<T> type) {
-        this.persistenceUnitName = getPersistenceUnitName();
+        this.persistenceUnitName = WATER_DEFAULT_PERSISTENCE_UNIT_NAME;
         this.initJpaRepository(type, initDefaultEntityManager(), new DuplicateConstraintValidator());
     }
 
@@ -110,15 +109,27 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
     }
 
     /**
+     * Generic constructor to force all parameters
+     *
+     * @param type
+     */
+    protected BaseJpaRepositoryImpl(Class<T> type, String persistenceUnitName, EntityManager entityManager) {
+        this.persistenceUnitName = persistenceUnitName;
+        this.initJpaRepository(type, entityManager, new DuplicateConstraintValidator());
+    }
+
+    /**
      * Constructor for WaterBaseRepositoryImpl
      *
      * @param type parameter that indicates a generic entity
      */
     protected BaseJpaRepositoryImpl(Class<T> type, EntityManager entityManager) {
+        this.persistenceUnitName = WATER_DEFAULT_PERSISTENCE_UNIT_NAME;
         this.initJpaRepository(type, entityManager, new DuplicateConstraintValidator());
     }
 
     protected BaseJpaRepositoryImpl(Class<T> type, EntityManager entityManager, RepositoryConstraintValidator... dbConstraintValidators) {
+        this.persistenceUnitName = WATER_DEFAULT_PERSISTENCE_UNIT_NAME;
         this.initJpaRepository(type, entityManager, dbConstraintValidators);
     }
 
@@ -149,10 +160,10 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
      *
      * @return
      */
-    private boolean isTransactionalSupported() {
+    private boolean isTransactionalSupported(EntityManager em) {
         //Every eventual exception we have accessing the transaction context means that transaction system is working
         try {
-            return getEntityManager() != null && (getEntityManager().isJoinedToTransaction() || (getEntityManager().getTransaction() != null && getEntityManager().getTransaction().isActive()));
+            return em != null && (em.isJoinedToTransaction() || (em.getTransaction() != null && em.getTransaction().isActive()));
         } catch (Exception e) {
             return true;
         }
@@ -162,40 +173,50 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
      * Identifies if the current context supports transaction or not.
      * For example in test environment where no application server is running transactional annotation won't work
      */
-    private void startTransactionIfNeeded() {
-        if (!isTransactionalSupported())
-            getEntityManager().getTransaction().begin();
+    private void startTransactionIfNeeded(EntityManager em) {
+        if (!isTransactionalSupported(em))
+            em.getTransaction().begin();
     }
 
     /**
      * Identifies if the current context supports transaction or not.
      * For example in test environment where no application server is running transactional annotation won't work
      */
-    private void commitTransactionIfNeeded() {
-        if (!isTransactionalSupported())
-            getEntityManager().getTransaction().commit();
+    private void commitTransactionIfNeeded(EntityManager em) {
+        if (!isTransactionalSupported(em))
+            em.getTransaction().commit();
     }
 
     /**
      * Save an entity in database
+     * Can be overridden in order to change the logic how to retrieve entity manager
      */
     @Override
-    @Transactional(Transactional.TxType.REQUIRED)
     public T persist(T entity) {
-        startTransactionIfNeeded();
+        return doPersist(entity, getEntityManager());
+    }
+
+    /**
+     * Persistence logic with a specific entity manager
+     *
+     * @param entity
+     * @param em
+     * @return
+     */
+    protected T doPersist(T entity, EntityManager em) {
+        startTransactionIfNeeded(em);
         try {
-            EntityManager em = getEntityManager();
             log.debug("Repository Saving entity {}: {}", this.type.getSimpleName(), entity);
             this.dbConstraintsValidatorManager.runCheck(entity, this.type, this);
             log.debug("Transaction found, invoke persist");
             em.persist(entity);
             log.debug("Entity persisted: {}", entity);
-            commitTransactionIfNeeded();
+            commitTransactionIfNeeded(em);
             return entity;
         } catch (RuntimeException e) {
             //only in context where @transactional is not supported
-            if (!isTransactionalSupported()) {
-                getEntityManager().getTransaction().rollback();
+            if (!isTransactionalSupported(em)) {
+                em.getTransaction().rollback();
             }
             throw e;
         }
@@ -203,13 +224,23 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
 
     /**
      * Update an entity in database
+     * Can be overridden in order to change the logic how to retrieve entity manager
      */
     @Override
-    @Transactional(Transactional.TxType.REQUIRED)
     public T update(T entity) {
+        return doUpdate(entity, getEntityManager());
+    }
+
+    /**
+     * Persistence logic with a specific entity manager
+     *
+     * @param entity
+     * @param em
+     * @return
+     */
+    protected T doUpdate(T entity, EntityManager em) {
         try {
-            startTransactionIfNeeded();
-            EntityManager em = getEntityManager();
+            startTransactionIfNeeded(em);
             log.debug("Repository Update entity {}: {}", this.type.getSimpleName(), entity);
             this.dbConstraintsValidatorManager.runCheck(entity, this.type, this);
             //Enforcing the concept that the owner cannot be changed
@@ -230,13 +261,13 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
                     updateEntity.setEntityVersion(updateEntity.getEntityVersion().intValue() + 1);
                 }
                 log.debug("Entity merged: {}", entity);
-                commitTransactionIfNeeded();
+                commitTransactionIfNeeded(em);
                 return updateEntity;
             }
         } catch (RuntimeException e) {
             //only in context where @transactional is not supported
-            if (!isTransactionalSupported()) {
-                getEntityManager().getTransaction().rollback();
+            if (!isTransactionalSupported(em)) {
+                em.getTransaction().rollback();
             }
             throw e;
         }
@@ -245,29 +276,36 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
 
     /**
      * Remove an entity by id
+     * Can be overridden in order to change the logic how to retrieve entity manager
      */
     @Override
-    @Transactional(Transactional.TxType.REQUIRED)
     public void remove(long id) {
+        doRemove(id, getEntityManager());
+    }
+
+    protected void doRemove(long id, EntityManager em) {
         try {
-            startTransactionIfNeeded();
-            EntityManager em = getEntityManager();
+            startTransactionIfNeeded(em);
             log.debug("Repository Remove entity {} with id: {}", this.type.getSimpleName(), id);
             T entity = em.find(type, id);
             em.remove(entity);
             log.debug("Entity {}  with id: {}  removed", this.type.getSimpleName(), id);
-            commitTransactionIfNeeded();
+            commitTransactionIfNeeded(em);
         } catch (RuntimeException e) {
             //only in context where @transactional is not supported
-            if (!isTransactionalSupported()) {
-                getEntityManager().getTransaction().rollback();
+            if (!isTransactionalSupported(em)) {
+                em.getTransaction().rollback();
             }
             throw e;
         }
     }
 
+    /**
+     * Can be overridden in order to change the logic how to retrieve entity manager
+     *
+     * @param entity
+     */
     @Override
-    @Transactional(Transactional.TxType.REQUIRED)
     public void remove(T entity) {
         log.debug("Repository Remove all entities {}: {}", this.type.getSimpleName(), entity);
         //post actions are preserved
@@ -275,7 +313,6 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
     }
 
     @Override
-    @Transactional(Transactional.TxType.REQUIRED)
     public void removeAllByIds(Iterable<Long> ids) {
         log.debug("Repository Remove all entities {} by ids {}", this.type.getSimpleName(), ids);
         //post actions are preserved
@@ -283,7 +320,6 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
     }
 
     @Override
-    @Transactional(Transactional.TxType.REQUIRED)
     public void removeAll(Iterable<T> entities) {
         log.debug("Repository Remove all entities {}: {}", this.type.getSimpleName(), entities);
         //post actions are preserved
@@ -291,7 +327,6 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
     }
 
     @Override
-    @Transactional(Transactional.TxType.REQUIRED)
     public void removeAll() {
         log.debug("Repository Remove all entities {}", this.type.getSimpleName());
         Collection<T> entites = this.findAll(-1, -1, null, null).getResults();
@@ -304,7 +339,6 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
      * @return
      */
     @Override
-    @Transactional(Transactional.TxType.SUPPORTS)
     public T find(long id) {
         log.debug("Repository Find entity {} with id: {}", this.type.getSimpleName(), id);
         Query filter = this.getQueryBuilderInstance().createQueryFilter("id=" + id);
@@ -318,20 +352,23 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
      * @return
      */
     @Override
-    @Transactional(Transactional.TxType.SUPPORTS)
     public T find(String filterStr) {
         Query filter = getQueryBuilderInstance().createQueryFilter(filterStr);
         return find(filter);
     }
 
     /**
+     * Can be overridden in order to change the logic how to retrieve entity manager
+     *
      * @param filter filter
      * @return
      */
     @Override
-    @Transactional(Transactional.TxType.SUPPORTS)
     public T find(Query filter) {
-        EntityManager em = getEntityManager();
+        return doFind(filter, getEntityManager());
+    }
+
+    protected T doFind(Query filter, EntityManager em) {
         log.debug("Repository Find entity {} with filter: {}", this.type.getSimpleName(), filter);
         log.debug("Transaction found, invoke find");
         CriteriaBuilder criteriaBuilder = em.getCriteriaBuilder();
@@ -355,13 +392,17 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
 
     /**
      * Find all entity
+     * Can be overridden in order to change the logic how to retrieve entity manager
      */
     @SuppressWarnings("unchecked")
     @Override
-    @Transactional(Transactional.TxType.SUPPORTS)
     public PaginatedResult<T> findAll(int delta, int page, Query filter, QueryOrder queryOrder) {
+        return doFindAll(delta, page, filter, queryOrder, getEntityManager());
+    }
+
+    protected PaginatedResult<T> doFindAll(int delta, int page, Query filter, QueryOrder queryOrder, EntityManager em) {
         log.debug("Repository Find All entities {}", this.type.getSimpleName());
-        javax.persistence.Query q = createQuery(filter, queryOrder);
+        javax.persistence.Query q = createQuery(filter, queryOrder, em);
         int lastPageNumber = 1;
         int nextPage = 1;
 
@@ -379,18 +420,21 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
         PaginatedResult<T> paginatedResult = new PaginatedResult<>(lastPageNumber, page, nextPage, delta, results);
         log.debug("Query results: {}", results);
         return paginatedResult;
-
     }
 
 
     /**
+     * Can be overridden in order to change the logic how to retrieve entity manager
+     *
      * @param filter filter query filter, can be null
      * @return entity count based on a specified filter
      */
     @Override
-    @Transactional(Transactional.TxType.SUPPORTS)
     public long countAll(Query filter) {
-        EntityManager em = getEntityManager();
+        return doCountAll(filter, getEntityManager());
+    }
+
+    protected long doCountAll(Query filter, EntityManager em) {
         log.debug("Repository countAll entities {}", this.type.getSimpleName());
         CriteriaBuilder criteriaBuilder = em.getCriteriaBuilder();
         //constructing query and count query
@@ -415,8 +459,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
         return criteriaOrderClause;
     }
 
-    private javax.persistence.Query createQuery(Query filter, QueryOrder queryOrder) {
-        EntityManager em = getEntityManager();
+    private javax.persistence.Query createQuery(Query filter, QueryOrder queryOrder, EntityManager em) {
         CriteriaBuilder criteriaBuilder = em.getCriteriaBuilder();
         CriteriaQuery<T> criteriaQuery = criteriaBuilder.createQuery(this.type);
         Root<T> entityDef = criteriaQuery.from(this.type);
@@ -433,16 +476,16 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Bas
     }
 
     @Override
-    @Transactional(Transactional.TxType.SUPPORTS)
     public QueryBuilder getQueryBuilderInstance() {
         return new DefaultQueryBuilder();
     }
 
     /**
      * Define the default persistence unit name
+     *
      * @return
      */
-    protected String getPersistenceUnitName(){
-        return "water-default-persistence-unit";
+    protected String getPersistenceUnitName() {
+        return persistenceUnitName;
     }
 }
