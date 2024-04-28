@@ -14,17 +14,23 @@
  * limitations under the License.
  */
 
-package it.water.repository.jpa.api;
+package it.water.repository.jpa.spring;
 
 import it.water.core.api.model.BaseEntity;
-import it.water.core.api.repository.BaseRepository;
-
-import javax.persistence.EntityManager;
+import it.water.repository.jpa.api.JpaRepository;
+import it.water.repository.jpa.api.JpaRepositoryManager;
+import org.springframework.stereotype.Service;
 
 /**
  * @Author Aristide Cittadino
- * Class used for exposing utility methods specific of javax.persistence.
+ * Osgi Jpa Repository Manager simply create a aries based jpa repository impl.
  */
-public interface JpaRepository<T extends BaseEntity> extends BaseRepository<T> {
-    EntityManager getEntityManager();
+@Service
+public class SpringJpaRepositoryManager implements JpaRepositoryManager {
+
+    @Override
+    public <T extends BaseEntity> JpaRepository<T> createConcreteRepository(Class<T> entityType, String persistenceUnit) {
+        //todo get repository factory from spring context and insert one
+        return new SpringBaseJpaRepositoryImpl<>(entityType, persistenceUnit);
+    }
 }

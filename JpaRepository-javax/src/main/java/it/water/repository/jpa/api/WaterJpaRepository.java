@@ -17,14 +17,13 @@
 package it.water.repository.jpa.api;
 
 import it.water.core.api.model.BaseEntity;
-import it.water.core.api.repository.BaseRepository;
-
-import javax.persistence.EntityManager;
 
 /**
+ * @param <T> Marker interface for framework repository that must be instatiated following the specific technology es. spring repository or osgi.
+ *            When a framework module is imported within a spring, quarkus, or osgi project, repository classes must be instantiated following the reference technology when it starts.
+ *            So generic repositories will have to be wrapped within concrete classes of the specific technology.
+ *            Differently from other repositories, WaterJpaRepository is defined as Water Service, so injections can be used inside it.
  * @Author Aristide Cittadino
- * Class used for exposing utility methods specific of javax.persistence.
  */
-public interface JpaRepository<T extends BaseEntity> extends BaseRepository<T> {
-    EntityManager getEntityManager();
+public interface WaterJpaRepository<T extends BaseEntity> extends JpaRepository<T> {
 }

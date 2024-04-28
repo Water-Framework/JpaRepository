@@ -14,6 +14,9 @@ dependencies {
     //lombok
     implementation group: 'org.projectlombok', name: 'lombok', version: project.lombokVersion
     annotationProcessor 'org.projectlombok:lombok:' + project.lombokVersion
+    //Atteo
+    implementation 'org.atteo.classindex:classindex:'+project.atteoClassIndexVersion
+    annotationProcessor('org.atteo.classindex:classindex:' + project.atteoClassIndexVersion)
     //javax persistence
     implementation group: 'javax.persistence', name: 'javax.persistence-api', version: project.javaxPersistenceVersion
     implementation group: 'javax.transaction', name: 'javax.transaction-api', version: project.javaxTransactionApiVersion

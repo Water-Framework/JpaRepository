@@ -55,7 +55,7 @@ import java.util.*;
  *            entities that interact with the platform.
  * @Author Aristide Cittadino.
  */
-public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements BaseRepository<T>, JpaRepository {
+public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements JpaRepository<T> {
     public static final String WATER_DEFAULT_PERSISTENCE_UNIT_NAME = "water-default-persistence-unit";
     @Getter(AccessLevel.PROTECTED)
     private Logger log = LoggerFactory.getLogger(BaseJpaRepositoryImpl.class.getName());

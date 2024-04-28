@@ -17,14 +17,8 @@
 package it.water.repository.jpa.api;
 
 import it.water.core.api.model.BaseEntity;
-import it.water.core.api.repository.BaseRepository;
+import it.water.core.api.service.Service;
 
-import javax.persistence.EntityManager;
-
-/**
- * @Author Aristide Cittadino
- * Class used for exposing utility methods specific of javax.persistence.
- */
-public interface JpaRepository<T extends BaseEntity> extends BaseRepository<T> {
-    EntityManager getEntityManager();
+public interface JpaRepositoryManager extends Service {
+    <T extends BaseEntity> JpaRepository<T> createConcreteRepository(Class<T> entityType, String persistenceUnit);
 }
