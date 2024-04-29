@@ -19,7 +19,12 @@ package it.water.repository.jpa.spring;
 import it.water.core.api.model.BaseEntity;
 import it.water.repository.jpa.api.JpaRepository;
 import it.water.repository.jpa.api.JpaRepositoryManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import javax.persistence.EntityManagerFactory;
 
 /**
  * @Author Aristide Cittadino
@@ -27,10 +32,13 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class SpringJpaRepositoryManager implements JpaRepositoryManager {
+    private Logger log = LoggerFactory.getLogger(SpringJpaRepositoryManager.class);
+    @Autowired
+    private EntityManagerFactory entityManagerFactory;
 
     @Override
     public <T extends BaseEntity> JpaRepository<T> createConcreteRepository(Class<T> entityType, String persistenceUnit) {
-        //todo get repository factory from spring context and insert one
-        return new SpringBaseJpaRepositoryImpl<>(entityType, persistenceUnit);
+        log.debug("Loading Entity Manager for {}", entityType.getName());
+        return new SpringBaseJpaRepositoryImpl<>(entityType, entityManagerFactory.createEntityManager());
     }
 }
