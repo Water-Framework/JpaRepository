@@ -46,7 +46,6 @@ dependencies {
 	//Spring for spring source set
 	implementation 'org.springframework.boot:spring-boot-starter-aop:' + project.springBootVersion
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa:' + project.springBootVersion
-	implementation 'org.springframework.boot:spring-boot-starter-validation:' + project.springBootVersion
 
 	implementation 'org.atteo.classindex:classindex:' + project.atteoClassIndexVersion
 	annotationProcessor('org.atteo.classindex:classindex:' + project.atteoClassIndexVersion)
@@ -60,7 +59,6 @@ dependencies {
 	testImplementation group: 'it.water.core', name: 'Core-registry', version: project.waterVersion
 	testImplementation group: 'it.water.core', name: 'Core-security', version: project.waterVersion
 	testImplementation group: 'it.water.core', name: 'Core-service', version: project.waterVersion
-	testImplementation group: 'it.water.core', name: 'Core-validation', version: project.waterVersion
 	testImplementation group: 'it.water.core', name: 'Core-validation-javax', version: project.waterVersion
 	testImplementation group: 'it.water.repository', name: 'Repository-entity', version: project.waterVersion
 	testImplementation group: 'it.water.repository', name: 'Repository-persistence', version: project.waterVersion
