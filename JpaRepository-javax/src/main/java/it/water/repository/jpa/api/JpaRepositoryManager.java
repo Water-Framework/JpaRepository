@@ -19,6 +19,10 @@ package it.water.repository.jpa.api;
 import it.water.core.api.model.BaseEntity;
 import it.water.core.api.service.Service;
 
+/**
+ * @author Aristide Cittadino
+ * Object which has the responsability to create specific framework repository when it find a water (cross frameowork) repository bean.
+ */
 public interface JpaRepositoryManager extends Service {
     <T extends BaseEntity> JpaRepository<T> createConcreteRepository(Class<T> entityType, String persistenceUnit);
 }

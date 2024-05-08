@@ -20,7 +20,6 @@ package it.water.repository.jpa;
 import it.water.core.api.entity.owned.OwnedResource;
 import it.water.core.api.model.BaseEntity;
 import it.water.core.api.model.User;
-import it.water.core.api.repository.BaseRepository;
 import it.water.core.api.repository.RepositoryConstraintValidator;
 import it.water.core.api.repository.query.Query;
 import it.water.core.api.repository.query.QueryBuilder;
@@ -44,6 +43,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
 import javax.persistence.criteria.*;
+import javax.transaction.Transactional;
 import java.util.*;
 
 
@@ -193,7 +193,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
      */
     @Override
     public T persist(T entity) {
-        return doPersist(entity, getEntityManager());
+        return tx(Transactional.TxType.REQUIRED, em -> doPersist(entity, em));
     }
 
     /**
@@ -228,7 +228,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
      */
     @Override
     public T update(T entity) {
-        return doUpdate(entity, getEntityManager());
+        return tx(Transactional.TxType.REQUIRED, em -> doUpdate(entity, em));
     }
 
     /**
@@ -280,7 +280,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
      */
     @Override
     public void remove(long id) {
-        doRemove(id, getEntityManager());
+        txExpr(Transactional.TxType.REQUIRED, em -> doRemove(id, em));
     }
 
     protected void doRemove(long id, EntityManager em) {
@@ -341,7 +341,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
     @Override
     public T find(long id) {
         log.debug("Repository Find entity {} with id: {}", this.type.getSimpleName(), id);
-        Query filter = this.getQueryBuilderInstance().createQueryFilter("id=" + id);
+        Query filter = this.getQueryBuilderInstance().field("id").equalTo(id);
         if (filter != null) return this.find(filter);
         throw new NoResultException();
     }
@@ -365,7 +365,10 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
      */
     @Override
     public T find(Query filter) {
-        return doFind(filter, getEntityManager());
+        T entity = tx(Transactional.TxType.SUPPORTS, em -> doFind(filter, em));
+        if (entity == null)
+            throw new NoResultException();
+        return entity;
     }
 
     protected T doFind(Query filter, EntityManager em) {
@@ -384,7 +387,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
             em.detach(entity);
             return entity;
         } catch (javax.persistence.NoResultException e) {
-            throw new it.water.repository.entity.model.exceptions.NoResultException();
+            return null;
         } catch (Exception e) {
             throw new WaterRuntimeException("Generic error, while executing find: " + e.getMessage());
         }
@@ -397,7 +400,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
     @SuppressWarnings("unchecked")
     @Override
     public PaginatedResult<T> findAll(int delta, int page, Query filter, QueryOrder queryOrder) {
-        return doFindAll(delta, page, filter, queryOrder, getEntityManager());
+        return tx(Transactional.TxType.SUPPORTS, em -> doFindAll(delta, page, filter, queryOrder, em));
     }
 
     protected PaginatedResult<T> doFindAll(int delta, int page, Query filter, QueryOrder queryOrder, EntityManager em) {
@@ -431,7 +434,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
      */
     @Override
     public long countAll(Query filter) {
-        return doCountAll(filter, getEntityManager());
+        return tx(Transactional.TxType.SUPPORTS, em -> doCountAll(filter, em));
     }
 
     protected long doCountAll(Query filter, EntityManager em) {

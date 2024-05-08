@@ -27,6 +27,9 @@ import it.water.repository.jpa.api.JpaRepositoryManager;
 import it.water.repository.jpa.api.WaterJpaRepository;
 
 import javax.persistence.EntityManager;
+import javax.transaction.Transactional;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * @Author Aristide Cittadino
@@ -130,4 +133,13 @@ public class WaterJpaRepositoryImpl<T extends BaseEntity> implements WaterJpaRep
         return concreteRepository.getQueryBuilderInstance();
     }
 
+    @Override
+    public void txExpr(Transactional.TxType txType, Consumer<EntityManager> function) {
+        concreteRepository.txExpr(txType, function);
+    }
+
+    @Override
+    public <R> R tx(Transactional.TxType txType, Function<EntityManager, R> function) {
+        return concreteRepository.tx(txType, function);
+    }
 }

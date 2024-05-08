@@ -17,10 +17,7 @@
 package it.water.repository.jpa.osgi;
 
 import it.water.core.api.model.BaseEntity;
-import it.water.core.api.repository.query.Query;
-import it.water.core.api.repository.query.QueryOrder;
 import it.water.core.model.exceptions.WaterRuntimeException;
-import it.water.repository.entity.model.PaginatedResult;
 import it.water.repository.jpa.BaseJpaRepositoryImpl;
 import org.apache.aries.jpa.template.JpaTemplate;
 import org.apache.aries.jpa.template.TransactionType;
@@ -32,21 +29,23 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.persistence.EntityManager;
+import javax.transaction.Transactional;
 import java.util.Collection;
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
- * @param <T> Class which extends JpaRepository
- *            This class will wrap base jpa repository in osgi context in order to support Transactions
- *            using OSGi Transactional Control Service
  * @Author Aristide Cittadino
+ * This class just overrides the transactions management methods
  */
 public abstract class OsgiBaseJpaRepository<T extends BaseEntity> extends BaseJpaRepositoryImpl<T> {
+
     private static Logger log = LoggerFactory.getLogger(OsgiBaseJpaRepository.class);
     private JpaTemplate jpaTemplate;
 
     protected OsgiBaseJpaRepository(Class<T> type, String persistenceUnitName) {
-        super(type, persistenceUnitName, null);
+        super(type, persistenceUnitName);
     }
 
     //TODO add service tracker
@@ -74,44 +73,26 @@ public abstract class OsgiBaseJpaRepository<T extends BaseEntity> extends BaseJp
     }
 
     @Override
-    public T persist(T entity) {
-        return getJpaTemplate().txExpr(TransactionType.Required, entityManager -> super.doPersist(entity, entityManager));
+    public void txExpr(Transactional.TxType txType, Consumer<EntityManager> function) {
+        getJpaTemplate().tx(mapTxType(txType), function::accept);
     }
 
     @Override
-    public T update(T entity) {
-        return getJpaTemplate().txExpr(TransactionType.Required, entityManager -> super.doUpdate(entity, entityManager));
+    public <R> R tx(Transactional.TxType txType, Function<EntityManager, R> function) {
+        return getJpaTemplate().txExpr(mapTxType(txType), function::apply);
     }
 
-    @Override
-    public void remove(long id) {
-        getJpaTemplate().tx(TransactionType.Required, entityManager -> super.doRemove(id, entityManager));
-    }
-
-    @Override
-    public T find(Query filter) {
-        //it's better to spawn a new transaction since find method can raise no component found exception
-        return getJpaTemplate().txExpr(TransactionType.RequiresNew, entityManager -> super.doFind(filter, entityManager));
-    }
-
-    @Override
-    public PaginatedResult<T> findAll(int delta, int page, Query filter, QueryOrder queryOrder) {
-        //it's better to spawn a new transaction since find method can raise no component found exception
-        return getJpaTemplate().txExpr(TransactionType.RequiresNew, entityManager -> super.doFindAll(delta, page, filter, queryOrder, entityManager));
-    }
-
-    @Override
-    public long countAll(Query filter) {
-        return getJpaTemplate().txExpr(TransactionType.Supports, entityManager -> super.doCountAll(filter, entityManager));
-    }
-
-    /**
-     * Entity manager is laoded by JpaTempalte session so it must not be possibile to retrieve from this method.
-     *
-     * @return
-     */
-    @Override
-    public EntityManager getEntityManager() {
-        throw new UnsupportedOperationException();
+    private TransactionType mapTxType(Transactional.TxType txType) {
+        if (txType.equals(Transactional.TxType.REQUIRED))
+            return TransactionType.Required;
+        else if (txType.equals(Transactional.TxType.REQUIRES_NEW))
+            return TransactionType.RequiresNew;
+        else if (txType.equals(Transactional.TxType.SUPPORTS))
+            return TransactionType.Supports;
+        else if (txType.equals(Transactional.TxType.NEVER))
+            return TransactionType.Never;
+        else if (txType.equals(Transactional.TxType.MANDATORY))
+            return TransactionType.Mandatory;
+        throw new IllegalArgumentException("Invalid txType");
     }
 }

@@ -18,10 +18,24 @@ package it.water.repository.jpa.repository;
 import it.water.repository.jpa.BaseJpaRepositoryImpl;
 import it.water.repository.jpa.entity.TestEntity;
 
+import javax.persistence.EntityManager;
+import javax.transaction.Transactional;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
 public class TestEntityRepository extends BaseJpaRepositoryImpl<TestEntity> {
 
     public TestEntityRepository(Class<TestEntity> type) {
         super(type);
     }
 
+    @Override
+    public void txExpr(Transactional.TxType txType, Consumer<EntityManager> function) {
+        function.accept(getEntityManager());
+    }
+
+    @Override
+    public <R> R tx(Transactional.TxType txType, Function<EntityManager, R> function) {
+        return function.apply(getEntityManager());
+    }
 }

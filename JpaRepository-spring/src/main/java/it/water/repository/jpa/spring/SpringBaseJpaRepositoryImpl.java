@@ -18,13 +18,15 @@ package it.water.repository.jpa.spring;
 
 import it.water.core.api.model.BaseEntity;
 import it.water.core.api.repository.RepositoryConstraintValidator;
-import it.water.core.api.repository.query.Query;
-import it.water.core.api.repository.query.QueryOrder;
-import it.water.repository.entity.model.PaginatedResult;
 import it.water.repository.jpa.BaseJpaRepositoryImpl;
+import org.springframework.orm.jpa.JpaTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * @param <T>
@@ -33,91 +35,59 @@ import javax.transaction.Transactional;
  * for transaction management.
  */
 public class SpringBaseJpaRepositoryImpl<T extends BaseEntity> extends BaseJpaRepositoryImpl<T> {
+    private TransactionTemplate transactionTemplate;
+
     public SpringBaseJpaRepositoryImpl(Class<T> type) {
         super(type);
+        initTransactionTemplate();
     }
 
     public SpringBaseJpaRepositoryImpl(Class<T> type, String persistenceUnitName) {
         super(type, persistenceUnitName);
+        initTransactionTemplate();
     }
 
     public SpringBaseJpaRepositoryImpl(Class<T> type, EntityManager entityManager) {
         super(type, entityManager);
+        initTransactionTemplate();
     }
 
     public SpringBaseJpaRepositoryImpl(Class<T> type, EntityManager entityManager, RepositoryConstraintValidator... dbConstraintValidators) {
         super(type, entityManager, dbConstraintValidators);
+        initTransactionTemplate();
+    }
+
+    private void initTransactionTemplate() {
+        JpaTransactionManager jpaTransactionManager = new JpaTransactionManager(getEntityManager().getEntityManagerFactory());
+        transactionTemplate = new TransactionTemplate(jpaTransactionManager);
     }
 
     @Override
-    @Transactional(Transactional.TxType.REQUIRED)
-    public T persist(T entity) {
-        return super.persist(entity);
+    public void txExpr(Transactional.TxType txType, Consumer<EntityManager> function) {
+        transactionTemplate.setPropagationBehavior(mapTxType(txType));
+        transactionTemplate.execute(status -> {
+            function.accept(getEntityManager());
+            return null;
+        });
     }
 
     @Override
-    @Transactional(Transactional.TxType.REQUIRED)
-    public T update(T entity) {
-        return super.update(entity);
+    public <R> R tx(Transactional.TxType txType, Function<EntityManager, R> function) {
+        transactionTemplate.setPropagationBehavior(mapTxType(txType));
+        return transactionTemplate.execute(status -> function.apply(getEntityManager()));
     }
 
-    @Override
-    @Transactional(Transactional.TxType.REQUIRED)
-    public void remove(long id) {
-        super.remove(id);
-    }
-
-    @Override
-    @Transactional(Transactional.TxType.REQUIRED)
-    public void remove(T entity) {
-        super.remove(entity);
-    }
-
-    @Override
-    @Transactional(Transactional.TxType.REQUIRED)
-    public void removeAllByIds(Iterable<Long> ids) {
-        super.removeAllByIds(ids);
-    }
-
-    @Override
-    @Transactional(Transactional.TxType.REQUIRED)
-    public void removeAll(Iterable<T> entities) {
-        super.removeAll(entities);
-    }
-
-    @Override
-    @Transactional(Transactional.TxType.REQUIRED)
-    public void removeAll() {
-        super.removeAll();
-    }
-
-    @Override
-    @Transactional(value = Transactional.TxType.REQUIRES_NEW)
-    public T find(long id) {
-        return super.find(id);
-    }
-
-    @Override
-    @Transactional(value = Transactional.TxType.REQUIRES_NEW)
-    public T find(String filterStr) {
-        return super.find(filterStr);
-    }
-
-    @Override
-    @Transactional(value = Transactional.TxType.REQUIRES_NEW)
-    public T find(Query filter) {
-        return super.find(filter);
-    }
-
-    @Override
-    @Transactional(value = Transactional.TxType.REQUIRES_NEW)
-    public PaginatedResult<T> findAll(int delta, int page, Query filter, QueryOrder queryOrder) {
-        return super.findAll(delta, page, filter, queryOrder);
-    }
-
-    @Override
-    @Transactional(Transactional.TxType.SUPPORTS)
-    public long countAll(Query filter) {
-        return super.countAll(filter);
+    private int mapTxType(Transactional.TxType txType) {
+        if (txType.equals(Transactional.TxType.REQUIRED))
+            return TransactionDefinition.PROPAGATION_REQUIRED;
+        else if (txType.equals(Transactional.TxType.REQUIRES_NEW))
+            return TransactionDefinition.PROPAGATION_REQUIRES_NEW;
+        else if (txType.equals(Transactional.TxType.SUPPORTS))
+            return TransactionDefinition.PROPAGATION_SUPPORTS;
+        else if (txType.equals(Transactional.TxType.NEVER))
+            return TransactionDefinition.PROPAGATION_NEVER;
+        else if (txType.equals(Transactional.TxType.MANDATORY))
+            return TransactionDefinition.PROPAGATION_MANDATORY;
+        throw new IllegalArgumentException("Invalid txType");
     }
 }

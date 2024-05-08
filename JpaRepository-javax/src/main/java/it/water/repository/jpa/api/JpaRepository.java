@@ -20,6 +20,9 @@ import it.water.core.api.model.BaseEntity;
 import it.water.core.api.repository.BaseRepository;
 
 import javax.persistence.EntityManager;
+import javax.transaction.Transactional;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * @Author Aristide Cittadino
@@ -27,4 +30,20 @@ import javax.persistence.EntityManager;
  */
 public interface JpaRepository<T extends BaseEntity> extends BaseRepository<T> {
     EntityManager getEntityManager();
+
+    /**
+     * Executes code inside a transaction without returning  result
+     *
+     * @param txType
+     * @param function
+     */
+    void txExpr(Transactional.TxType txType, Consumer<EntityManager> function);
+
+    /**
+     * Executes code inside a transaction returning  result
+     *
+     * @param txType
+     * @param function
+     */
+    <R> R tx(Transactional.TxType txType, Function<EntityManager, R> function);
 }
