@@ -16,15 +16,16 @@
 
 package it.water.repository.jpa;
 
-import it.water.core.api.interceptors.OnActivate;
 import it.water.core.api.model.BaseEntity;
 import it.water.core.api.model.PaginableResult;
 import it.water.core.api.repository.query.Query;
 import it.water.core.api.repository.query.QueryBuilder;
 import it.water.core.api.repository.query.QueryOrder;
+import it.water.core.interceptors.annotations.Inject;
 import it.water.repository.jpa.api.JpaRepository;
 import it.water.repository.jpa.api.JpaRepositoryManager;
 import it.water.repository.jpa.api.WaterJpaRepository;
+import lombok.Setter;
 
 import javax.persistence.EntityManager;
 import javax.transaction.Transactional;
@@ -44,15 +45,20 @@ public class WaterJpaRepositoryImpl<T extends BaseEntity> implements WaterJpaRep
     private JpaRepository<T> concreteRepository;
     private Class<T> type;
     private String persistenceUnitName;
+    @Inject
+    @Setter
+    private JpaRepositoryManager jpaRepositoryManager;
 
     public WaterJpaRepositoryImpl(Class<T> type, String persistenceUnitName) {
         this.type = type;
         this.persistenceUnitName = persistenceUnitName;
     }
 
-    @OnActivate
-    public void onActivate(JpaRepositoryManager jpaRepositoryManager) {
-        this.concreteRepository = jpaRepositoryManager.createConcreteRepository(type, persistenceUnitName);
+    private JpaRepository<T> getConcreteRepository() {
+        if (this.concreteRepository == null) {
+            this.concreteRepository = jpaRepositoryManager.createConcreteRepository(type, persistenceUnitName);
+        }
+        return this.concreteRepository;
     }
 
     protected Class<T> getType() {
@@ -65,81 +71,81 @@ public class WaterJpaRepositoryImpl<T extends BaseEntity> implements WaterJpaRep
 
     @Override
     public EntityManager getEntityManager() {
-        return concreteRepository.getEntityManager();
+        return getConcreteRepository().getEntityManager();
     }
 
     @Override
     public T persist(T entity) {
-        return concreteRepository.persist(entity);
+        return getConcreteRepository().persist(entity);
     }
 
     @Override
     public T update(T entity) {
-        return concreteRepository.update(entity);
+        return getConcreteRepository().update(entity);
     }
 
     @Override
     public void remove(long id) {
-        concreteRepository.remove(id);
+        getConcreteRepository().remove(id);
     }
 
     @Override
     public void remove(T entity) {
-        concreteRepository.remove(entity);
+        getConcreteRepository().remove(entity);
     }
 
     @Override
     public void removeAllByIds(Iterable<Long> ids) {
-        concreteRepository.removeAllByIds(ids);
+        getConcreteRepository().removeAllByIds(ids);
     }
 
     @Override
     public void removeAll(Iterable<T> entities) {
-        concreteRepository.removeAll(entities);
+        getConcreteRepository().removeAll(entities);
     }
 
     @Override
     public void removeAll() {
-        concreteRepository.removeAll();
+        getConcreteRepository().removeAll();
     }
 
     @Override
     public T find(long id) {
-        return concreteRepository.find(id);
+        return getConcreteRepository().find(id);
     }
 
     @Override
     public T find(String filterStr) {
-        return concreteRepository.find(filterStr);
+        return getConcreteRepository().find(filterStr);
     }
 
     @Override
     public T find(Query filter) {
-        return concreteRepository.find(filter);
+        return getConcreteRepository().find(filter);
     }
 
     @Override
     public PaginableResult<T> findAll(int delta, int page, Query filter, QueryOrder queryOrder) {
-        return concreteRepository.findAll(delta, page, filter, queryOrder);
+        return getConcreteRepository().findAll(delta, page, filter, queryOrder);
     }
 
     @Override
     public long countAll(Query filter) {
-        return concreteRepository.countAll(filter);
+        return getConcreteRepository().countAll(filter);
     }
 
     @Override
     public QueryBuilder getQueryBuilderInstance() {
-        return concreteRepository.getQueryBuilderInstance();
+        return getConcreteRepository().getQueryBuilderInstance();
     }
 
     @Override
     public void txExpr(Transactional.TxType txType, Consumer<EntityManager> function) {
-        concreteRepository.txExpr(txType, function);
+        getConcreteRepository().txExpr(txType, function);
     }
 
     @Override
     public <R> R tx(Transactional.TxType txType, Function<EntityManager, R> function) {
-        return concreteRepository.tx(txType, function);
+        return getConcreteRepository().tx(txType, function);
     }
 }
