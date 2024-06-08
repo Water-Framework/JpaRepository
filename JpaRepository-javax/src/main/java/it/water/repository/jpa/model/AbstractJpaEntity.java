@@ -39,7 +39,7 @@ public abstract class AbstractJpaEntity extends AbstractEntity
     @Override
     @Id
     @GeneratedValue
-    @JsonView({WaterJsonView.Extended.class,WaterJsonView.Compact.class,WaterJsonView.Internal.class,WaterJsonView.Privacy.class,WaterJsonView.Public.class})
+    @JsonView({WaterJsonView.Extended.class, WaterJsonView.Compact.class, WaterJsonView.Internal.class, WaterJsonView.Privacy.class, WaterJsonView.Public.class})
     public long getId() {
         return id;
     }
@@ -52,7 +52,7 @@ public abstract class AbstractJpaEntity extends AbstractEntity
     @Override
     @Version
     @Column(name = "entity_version", columnDefinition = "INTEGER default 1")
-    @JsonView({WaterJsonView.Extended.class,WaterJsonView.Compact.class,WaterJsonView.Internal.class,WaterJsonView.Privacy.class,WaterJsonView.Public.class})
+    @JsonView({WaterJsonView.Extended.class, WaterJsonView.Compact.class, WaterJsonView.Internal.class, WaterJsonView.Privacy.class, WaterJsonView.Public.class})
     public Integer getEntityVersion() {
         return entityVersion;
     }
@@ -65,7 +65,7 @@ public abstract class AbstractJpaEntity extends AbstractEntity
     @Override
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "entity_create_date")
-    @JsonView({WaterJsonView.Extended.class,WaterJsonView.Compact.class,WaterJsonView.Internal.class,WaterJsonView.Privacy.class,WaterJsonView.Public.class})
+    @JsonView({WaterJsonView.Extended.class, WaterJsonView.Compact.class, WaterJsonView.Internal.class, WaterJsonView.Privacy.class, WaterJsonView.Public.class})
     public Date getEntityCreateDate() {
         return entityCreateDate;
     }
@@ -73,7 +73,7 @@ public abstract class AbstractJpaEntity extends AbstractEntity
     @Override
     @Temporal(TemporalType.TIMESTAMP)
     @Column(name = "entity_modify_date")
-    @JsonView({WaterJsonView.Extended.class,WaterJsonView.Compact.class,WaterJsonView.Internal.class,WaterJsonView.Privacy.class,WaterJsonView.Public.class})
+    @JsonView({WaterJsonView.Extended.class, WaterJsonView.Compact.class, WaterJsonView.Internal.class, WaterJsonView.Privacy.class, WaterJsonView.Public.class})
     public Date getEntityModifyDate() {
         return entityModifyDate;
     }
@@ -96,6 +96,7 @@ public abstract class AbstractJpaEntity extends AbstractEntity
     @PreUpdate
     private void preUpdate() {
         this.setEntityModifyDate(new Date(Instant.now().toEpochMilli()));
+        doPreUpdate();
     }
 
     @PrePersist
@@ -104,6 +105,16 @@ public abstract class AbstractJpaEntity extends AbstractEntity
         Date now = new Date(nowMillis);
         this.setEntityModifyDate(now);
         this.setEntityCreateDate(now);
+        doPrePersist();
     }
 
+    //can be overridden
+    protected void doPrePersist() {
+        //do nothing
+    }
+
+    //can be overridden
+    protected void doPreUpdate() {
+        //do nothing
+    }
 }
