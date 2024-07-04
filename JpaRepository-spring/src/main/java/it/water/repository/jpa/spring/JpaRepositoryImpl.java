@@ -25,10 +25,10 @@ import it.water.core.api.repository.query.QueryOrder;
 import it.water.repository.entity.model.exceptions.NoResultException;
 import it.water.repository.jpa.model.AbstractJpaEntity;
 import it.water.repository.query.DefaultQueryBuilder;
+import jakarta.persistence.EntityManager;
 import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
 
-import javax.persistence.EntityManager;
 import java.util.*;
 
 /**

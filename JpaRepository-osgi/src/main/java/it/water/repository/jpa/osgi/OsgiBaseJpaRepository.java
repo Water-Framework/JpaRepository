@@ -19,80 +19,83 @@ package it.water.repository.jpa.osgi;
 import it.water.core.api.model.BaseEntity;
 import it.water.core.model.exceptions.WaterRuntimeException;
 import it.water.repository.jpa.BaseJpaRepositoryImpl;
-import org.apache.aries.jpa.template.JpaTemplate;
-import org.apache.aries.jpa.template.TransactionType;
-import org.osgi.framework.BundleContext;
-import org.osgi.framework.FrameworkUtil;
-import org.osgi.framework.InvalidSyntaxException;
-import org.osgi.framework.ServiceReference;
+import it.water.repository.jpa.osgi.hibernate.OsgiScanner;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.transaction.Transactional;
+import org.hibernate.cfg.*;
+import org.hibernate.jpa.HibernatePersistenceProvider;
+import org.osgi.framework.*;
+import org.osgi.framework.wiring.BundleWiring;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.persistence.EntityManager;
-import javax.transaction.Transactional;
-import java.util.Collection;
-import java.util.Optional;
+import javax.sql.DataSource;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
  * @Author Aristide Cittadino
- * This class just overrides the transactions management methods
+ * This class overrides how persistence unit is created inside osgi context.
+ * Basically each bundle has its own persistence unit isolated from other bundles.
+ * This "supports" the aggregate concept of domain driven design.
  */
 public abstract class OsgiBaseJpaRepository<T extends BaseEntity> extends BaseJpaRepositoryImpl<T> {
 
     private static Logger log = LoggerFactory.getLogger(OsgiBaseJpaRepository.class);
-    private JpaTemplate jpaTemplate;
 
     protected OsgiBaseJpaRepository(Class<T> type, String persistenceUnitName) {
         super(type, persistenceUnitName);
     }
 
-    //TODO add service tracker
-    protected JpaTemplate getJpaTemplate() {
-        if (jpaTemplate == null) {
-            BundleContext ctx = FrameworkUtil.getBundle(this.getClass()).getBundleContext();
-            String filter = "(osgi.unit.name=" + this.getPersistenceUnitName() + ")";
-            ServiceReference<JpaTemplate> transactionControlServiceReference = null;
-            try {
-                Collection<ServiceReference<JpaTemplate>> transactionControlServiceReferences = ctx.getServiceReferences(JpaTemplate.class, filter);
-                //should not be more than one
-                if (!transactionControlServiceReferences.isEmpty()) {
-                    Optional<ServiceReference<JpaTemplate>> serviceReferenceOptional = transactionControlServiceReferences.stream().findFirst();
-                    if (serviceReferenceOptional.isPresent())
-                        transactionControlServiceReference = serviceReferenceOptional.get();
-                }
-            } catch (InvalidSyntaxException e) {
-                log.error(e.getMessage(), e);
-            }
-            if (transactionControlServiceReference == null)
-                throw new WaterRuntimeException("No transaction control found!");
-            jpaTemplate = ctx.getService(transactionControlServiceReference);
-        }
-        return jpaTemplate;
-    }
-
     @Override
     public void txExpr(Transactional.TxType txType, Consumer<EntityManager> function) {
-        getJpaTemplate().tx(mapTxType(txType), function::accept);
+        function.accept(this.getEntityManager());
     }
 
     @Override
     public <R> R tx(Transactional.TxType txType, Function<EntityManager, R> function) {
-        return getJpaTemplate().txExpr(mapTxType(txType), function::apply);
+        R result = function.apply(this.getEntityManager());
+        return result;
     }
 
-    private TransactionType mapTxType(Transactional.TxType txType) {
-        if (txType.equals(Transactional.TxType.REQUIRED))
-            return TransactionType.Required;
-        else if (txType.equals(Transactional.TxType.REQUIRES_NEW))
-            return TransactionType.RequiresNew;
-        else if (txType.equals(Transactional.TxType.SUPPORTS))
-            return TransactionType.Supports;
-        else if (txType.equals(Transactional.TxType.NEVER))
-            return TransactionType.Never;
-        else if (txType.equals(Transactional.TxType.MANDATORY))
-            return TransactionType.Mandatory;
-        throw new IllegalArgumentException("Invalid txType");
+    @Override
+    protected EntityManagerFactory createDefaultEntityManagerFactory() {
+        Bundle persistenceBundle = FrameworkUtil.getBundle(this.type);
+        DataSource ds = getDataSource();
+        ClassLoader entityClassLoader = FrameworkUtil.getBundle(this.type).adapt(BundleWiring.class).getClassLoader();
+        Collection<ClassLoader> classLoaders = new ArrayList<>();
+        classLoaders.add(entityClassLoader);
+        classLoaders.add(Thread.currentThread().getContextClassLoader());
+        Map<String, Object> properties = new HashMap<>();
+        //properties.put("hibernate.transaction.jta.platform", "org.hibernate.service.jta.platform.internal.JBossStandAloneJtaPlatform");
+        properties.put(PersistenceSettings.SCANNER_DISCOVERY, "class");
+        properties.put(PersistenceSettings.SCANNER, new OsgiScanner(persistenceBundle));
+        properties.put(SchemaToolingSettings.HBM2DDL_AUTO, "update");
+        properties.put(JdbcSettings.JAKARTA_JTA_DATASOURCE, ds);
+        properties.put(EnvironmentSettings.CLASSLOADERS, classLoaders);
+        return new HibernatePersistenceProvider().createEntityManagerFactory(getPersistenceUnitName(), properties);
+    }
+
+    private DataSource getDataSource() {
+        BundleContext ctx = FrameworkUtil.getBundle(this.getClass()).getBundleContext();
+        String filter = "(osgi.jndi.service.name=water)";
+        ServiceReference<DataSource> osgiDataSource = null;
+        try {
+            Collection<ServiceReference<DataSource>> transactionControlServiceReferences = ctx.getServiceReferences(DataSource.class, filter);
+            //should not be more than one
+            if (!transactionControlServiceReferences.isEmpty()) {
+                Optional<ServiceReference<DataSource>> serviceReferenceOptional = transactionControlServiceReferences.stream().findFirst();
+                if (serviceReferenceOptional.isPresent())
+                    osgiDataSource = serviceReferenceOptional.get();
+            }
+        } catch (InvalidSyntaxException e) {
+            log.error(e.getMessage(), e);
+        }
+        if (osgiDataSource == null)
+            throw new WaterRuntimeException("No transaction control found!");
+
+        return ctx.getService(osgiDataSource);
     }
 }

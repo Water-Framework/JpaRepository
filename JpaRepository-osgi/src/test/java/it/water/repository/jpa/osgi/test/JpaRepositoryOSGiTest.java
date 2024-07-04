@@ -19,6 +19,8 @@ package it.water.repository.jpa.osgi.test;
 import it.water.core.api.repository.query.Query;
 import it.water.osgi.test.bundle.entity.TestEntity;
 import it.water.osgi.test.bundle.entity.TestEntitySystemApi;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 import org.apache.karaf.features.FeaturesService;
 import org.apache.karaf.itests.KarafTestSupport;
 import org.junit.Assert;
@@ -28,9 +30,6 @@ import org.ops4j.pax.exam.Option;
 import org.ops4j.pax.exam.junit.PaxExam;
 import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerSuite;
-
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
 
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerSuite.class)
@@ -59,8 +58,6 @@ public class JpaRepositoryOSGiTest extends KarafTestSupport {
     @Test
     public void testRepository() {
         TestEntitySystemApi entitySystemApi = getOsgiService(TestEntitySystemApi.class);
-        EntityManagerFactory entityManagerFactory = getOsgiService(EntityManagerFactory.class, "(osgi.unit.name=water-default-persistence-unit)", 0);
-        EntityManager em = entityManagerFactory.createEntityManager();
         TestEntity testEntity = new TestEntity("field1", "field2");
         //testing persist on water repository
         entitySystemApi.save(testEntity);
@@ -72,7 +69,7 @@ public class JpaRepositoryOSGiTest extends KarafTestSupport {
         foundWithBaseRepo.setField1("field1New");
         entitySystemApi.update(foundWithBaseRepo);
         Assert.assertEquals("field1New", foundWithBaseRepo.getField1());
-        Assert.assertEquals("field1", testEntity.getField1());
+        Assert.assertEquals("field1New", testEntity.getField1());
         Assert.assertEquals("field2", testEntity.getField2());
     }
 

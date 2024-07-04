@@ -19,12 +19,12 @@ package it.water.repository.jpa.spring;
 import it.water.core.api.model.BaseEntity;
 import it.water.core.api.repository.RepositoryConstraintValidator;
 import it.water.repository.jpa.BaseJpaRepositoryImpl;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import javax.persistence.EntityManager;
-import javax.transaction.Transactional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 

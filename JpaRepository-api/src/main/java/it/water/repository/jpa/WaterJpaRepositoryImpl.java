@@ -25,12 +25,13 @@ import it.water.core.interceptors.annotations.Inject;
 import it.water.repository.jpa.api.JpaRepository;
 import it.water.repository.jpa.api.JpaRepositoryManager;
 import it.water.repository.jpa.api.WaterJpaRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 import lombok.Setter;
 
-import javax.persistence.EntityManager;
-import javax.transaction.Transactional;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
 
 /**
  * @Author Aristide Cittadino
@@ -67,11 +68,6 @@ public class WaterJpaRepositoryImpl<T extends BaseEntity> implements WaterJpaRep
 
     protected String getPersistenceUnitName() {
         return persistenceUnitName;
-    }
-
-    @Override
-    public EntityManager getEntityManager() {
-        return getConcreteRepository().getEntityManager();
     }
 
     @Override
@@ -137,6 +133,11 @@ public class WaterJpaRepositoryImpl<T extends BaseEntity> implements WaterJpaRep
     @Override
     public QueryBuilder getQueryBuilderInstance() {
         return getConcreteRepository().getQueryBuilderInstance();
+    }
+
+    @Override
+    public EntityManager getEntityManager() {
+        return getConcreteRepository().getEntityManager();
     }
 
     @Override

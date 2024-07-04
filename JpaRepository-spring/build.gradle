@@ -25,14 +25,16 @@ dependencies {
 	//lombok
 	implementation group: 'org.projectlombok', name: 'lombok', version: project.lombokVersion
 	annotationProcessor 'org.projectlombok:lombok:' + project.lombokVersion
+	//Needed for hibernate
+	implementation group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
 	//Atteo
 	implementation 'org.atteo.classindex:classindex:'+project.atteoClassIndexVersion
 	annotationProcessor('org.atteo.classindex:classindex:' + project.atteoClassIndexVersion)
 	//Jackson
 	implementation group: 'com.fasterxml.jackson.jaxrs', name: 'jackson-jaxrs-json-provider', version: project.jacksonVersion
 	//Persistence
-	implementation group: 'javax.persistence', name: 'javax.persistence-api', version: project.javaxPersistenceVersion
-	implementation group: 'javax.transaction', name: 'javax.transaction-api', version: project.javaxTransactionApiVersion
+	implementation group: 'jakarta.persistence', name: 'jakarta.persistence-api', version: project.jakartaPersistenceVersion
+	implementation group: 'jakarta.transaction', name: 'jakarta.transaction-api', version: project.jakartaTransactionApiVersion
 	//Encryption
 	implementation group: 'org.bouncycastle', name: 'bcmail-jdk15on', version: project.bouncyCastleVersion
 	implementation group: 'it.water.distribution', name: 'Water-distribution-spring', version: project.waterVersion
@@ -41,7 +43,7 @@ dependencies {
 	includeInJar ('it.water.repository:Repository-entity:'+project.waterVersion)
 	includeInJar ('it.water.repository:Repository-persistence:'+project.waterVersion)
 	includeInJar ('it.water.repository:Repository-service:'+project.waterVersion)
-	includeInJar (project(":JpaRepository-javax"))
+	includeInJar (project(":JpaRepository-api"))
 
 	//Spring for spring source set
 	implementation 'org.springframework.boot:spring-boot-starter-aop:' + project.springBootVersion
@@ -59,17 +61,18 @@ dependencies {
 	testImplementation group: 'it.water.core', name: 'Core-registry', version: project.waterVersion
 	testImplementation group: 'it.water.core', name: 'Core-security', version: project.waterVersion
 	testImplementation group: 'it.water.core', name: 'Core-service', version: project.waterVersion
-	testImplementation group: 'it.water.core', name: 'Core-validation-javax', version: project.waterVersion
+	testImplementation group: 'it.water.core', name: 'Core-validation', version: project.waterVersion
 	testImplementation group: 'it.water.repository', name: 'Repository-entity', version: project.waterVersion
 	testImplementation group: 'it.water.repository', name: 'Repository-persistence', version: project.waterVersion
 	testImplementation group: 'it.water.repository', name: 'Repository-service', version: project.waterVersion
-	testImplementation project(":JpaRepository-javax")
+	testImplementation project(":JpaRepository-api")
 	testImplementation group: 'it.water.implementation', name: 'Implementation-spring', version: project.waterVersion
 	testImplementation 'org.springframework.boot:spring-boot-starter-test:' + project.springBootVersion
 	testImplementation 'org.junit.jupiter:junit-jupiter-api:' + project.junitJupiterVersion
 	testImplementation 'org.junit.jupiter:junit-jupiter-engine:' + project.junitJupiterVersion
 	testImplementation 'org.atteo.classindex:classindex:' + project.atteoClassIndexVersion
 	testImplementation 'org.hsqldb:hsqldb:2.4.0'
+
 	testAnnotationProcessor('org.atteo.classindex:classindex:' + project.atteoClassIndexVersion)
 	testAnnotationProcessor 'org.projectlombok:lombok:' + project.lombokVersion
 }

@@ -34,16 +34,16 @@ import it.water.repository.jpa.constraints.DuplicateConstraintValidator;
 import it.water.repository.jpa.constraints.RepositoryConstraintValidatorsManager;
 import it.water.repository.jpa.query.PredicateBuilder;
 import it.water.repository.query.DefaultQueryBuilder;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
+import jakarta.persistence.criteria.*;
+import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.Persistence;
-import javax.persistence.criteria.*;
-import javax.transaction.Transactional;
 import java.util.*;
 
 
@@ -94,8 +94,8 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
      * @param type
      */
     protected BaseJpaRepositoryImpl(Class<T> type) {
-        this.persistenceUnitName = WATER_DEFAULT_PERSISTENCE_UNIT_NAME;
-        this.initJpaRepository(type, initDefaultEntityManager(), new DuplicateConstraintValidator());
+        setupJpaRepository(WATER_DEFAULT_PERSISTENCE_UNIT_NAME, type);
+        this.initJpaRepository(initDefaultEntityManager(), new DuplicateConstraintValidator());
     }
 
     /**
@@ -104,8 +104,8 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
      * @param type
      */
     protected BaseJpaRepositoryImpl(Class<T> type, String persistenceUnitName) {
-        this.persistenceUnitName = persistenceUnitName;
-        this.initJpaRepository(type, initDefaultEntityManager(), new DuplicateConstraintValidator());
+        setupJpaRepository(persistenceUnitName, type);
+        this.initJpaRepository(initDefaultEntityManager(), new DuplicateConstraintValidator());
     }
 
     /**
@@ -114,8 +114,8 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
      * @param type
      */
     protected BaseJpaRepositoryImpl(Class<T> type, String persistenceUnitName, EntityManager entityManager) {
-        this.persistenceUnitName = persistenceUnitName;
-        this.initJpaRepository(type, entityManager, new DuplicateConstraintValidator());
+        setupJpaRepository(persistenceUnitName, type);
+        this.initJpaRepository(entityManager, new DuplicateConstraintValidator());
     }
 
     /**
@@ -124,26 +124,30 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
      * @param type parameter that indicates a generic entity
      */
     protected BaseJpaRepositoryImpl(Class<T> type, EntityManager entityManager) {
-        this.persistenceUnitName = WATER_DEFAULT_PERSISTENCE_UNIT_NAME;
-        this.initJpaRepository(type, entityManager, new DuplicateConstraintValidator());
+        setupJpaRepository(WATER_DEFAULT_PERSISTENCE_UNIT_NAME, type);
+        this.initJpaRepository(entityManager, new DuplicateConstraintValidator());
     }
 
     protected BaseJpaRepositoryImpl(Class<T> type, EntityManager entityManager, RepositoryConstraintValidator... dbConstraintValidators) {
-        this.persistenceUnitName = WATER_DEFAULT_PERSISTENCE_UNIT_NAME;
-        this.initJpaRepository(type, entityManager, dbConstraintValidators);
+        setupJpaRepository(WATER_DEFAULT_PERSISTENCE_UNIT_NAME, type);
+        this.initJpaRepository(entityManager, dbConstraintValidators);
     }
 
-    private void initJpaRepository(Class<T> type, EntityManager entityManager, RepositoryConstraintValidator... dbConstraintValidators) {
-        this.type = type;
+    protected void initJpaRepository(EntityManager entityManager, RepositoryConstraintValidator... dbConstraintValidators) {
         this.entityManager = entityManager;
         this.dbConstraintsValidatorManager = new RepositoryConstraintValidatorsManager(dbConstraintValidators);
+    }
+
+    private void setupJpaRepository(String persistenceUnitName, Class<T> type) {
+        this.type = type;
+        this.persistenceUnitName = persistenceUnitName;
     }
 
     private synchronized EntityManager initDefaultEntityManager() {
         if (!globalEntityManagers.containsKey(this.persistenceUnitName)) {
             try {
-                EntityManagerFactory emFactory = Persistence.createEntityManagerFactory(this.persistenceUnitName);
-                globalEntityManagers.put(this.persistenceUnitName, emFactory.createEntityManager());
+                EntityManagerFactory entityManagerFactory = createDefaultEntityManagerFactory();
+                globalEntityManagers.put(this.persistenceUnitName, entityManagerFactory.createEntityManager());
             } catch (Exception e) {
                 globalEntityManagers.remove(this.persistenceUnitName);
                 getLog().warn(e.getMessage(), e);
@@ -151,6 +155,10 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
             }
         }
         return globalEntityManagers.get(this.persistenceUnitName);
+    }
+
+    protected EntityManagerFactory createDefaultEntityManagerFactory() {
+        return Persistence.createEntityManagerFactory(this.persistenceUnitName);
     }
 
     /**
@@ -246,8 +254,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
             //Enforcing the concept that the owner cannot be changed
             //TO DO: check if it is useful or not
             T entityFromDb = em.find(type, entity.getId());
-            if (entityFromDb instanceof OwnedResource) {
-                OwnedResource ownedFromDb = (OwnedResource) entityFromDb;
+            if (entityFromDb instanceof OwnedResource ownedFromDb) {
                 User oldOwner = ownedFromDb.getUserOwner();
                 OwnedResource owned = (OwnedResource) entity;
                 owned.setUserOwner(oldOwner);
@@ -379,14 +386,14 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
         Root<T> entityDef = query.from(this.type);
         Predicate condition = (filter != null) ? toPredicate(filter, entityDef, query, criteriaBuilder) : null;
         CriteriaQuery<T> criteriaQuery = (condition != null) ? query.select(entityDef).where(condition) : query.select(entityDef);
-        javax.persistence.Query q = em.createQuery(criteriaQuery);
+        jakarta.persistence.Query q = em.createQuery(criteriaQuery);
         try {
             T entity = (T) q.getSingleResult();
             log.debug("Found entity: {}", entity);
             //Detaching entity in order to prevent unwanted logic
             em.detach(entity);
             return entity;
-        } catch (javax.persistence.NoResultException e) {
+        } catch (jakarta.persistence.NoResultException e) {
             return null;
         } catch (Exception e) {
             throw new WaterRuntimeException("Generic error, while executing find: " + e.getMessage());
@@ -405,7 +412,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
 
     protected PaginatedResult<T> doFindAll(int delta, int page, Query filter, QueryOrder queryOrder, EntityManager em) {
         log.debug("Repository Find All entities {}", this.type.getSimpleName());
-        javax.persistence.Query q = createQuery(filter, queryOrder, em);
+        jakarta.persistence.Query q = createQuery(filter, queryOrder, em);
         int lastPageNumber = 1;
         int nextPage = 1;
 
@@ -446,7 +453,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
         Predicate conditionCount = (filter != null) ? toPredicate(filter, entityDefCount, countQuery, criteriaBuilder) : null;
         countQuery = (conditionCount != null) ? countQuery.select(criteriaBuilder.count(entityDefCount)).where(conditionCount) : countQuery.select(criteriaBuilder.count(entityDefCount));
         //Executing count query
-        javax.persistence.Query countQueryFinal = em.createQuery(countQuery);
+        jakarta.persistence.Query countQueryFinal = em.createQuery(countQuery);
         return (Long) countQueryFinal.getSingleResult();
     }
 
@@ -462,7 +469,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
         return criteriaOrderClause;
     }
 
-    private javax.persistence.Query createQuery(Query filter, QueryOrder queryOrder, EntityManager em) {
+    private jakarta.persistence.Query createQuery(Query filter, QueryOrder queryOrder, EntityManager em) {
         CriteriaBuilder criteriaBuilder = em.getCriteriaBuilder();
         CriteriaQuery<T> criteriaQuery = criteriaBuilder.createQuery(this.type);
         Root<T> entityDef = criteriaQuery.from(this.type);

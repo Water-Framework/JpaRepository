@@ -18,8 +18,8 @@ package it.water.repository.jpa.test;
 
 import it.water.core.api.model.BaseEntity;
 import it.water.repository.jpa.BaseJpaRepositoryImpl;
+import jakarta.transaction.Transactional;
 
-import javax.transaction.Transactional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 

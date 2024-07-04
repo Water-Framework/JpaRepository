@@ -18,14 +18,13 @@
 package it.water.repository.jpa.spring.bundle.persistence.entity;
 
 
-import it.water.core.validation.javax.annotations.NoMalitiusCode;
+import it.water.core.validation.annotations.NoMalitiusCode;
 import it.water.repository.jpa.model.AbstractJpaEntity;
+import jakarta.persistence.Entity;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import javax.persistence.Entity;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

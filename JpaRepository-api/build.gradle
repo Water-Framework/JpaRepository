@@ -2,8 +2,8 @@
 dependencies {
 	//SLF4J
 	implementation group: 'org.slf4j', name: 'slf4j-api', version: project.slf4jVersion
-	implementation group: 'javax.persistence', name: 'javax.persistence-api', version: project.javaxPersistenceVersion
-	implementation group: 'javax.transaction', name: 'javax.transaction-api', version: project.javaxTransactionApiVersion
+	implementation group: 'jakarta.persistence', name: 'jakarta.persistence-api', version: project.jakartaPersistenceVersion
+	implementation group: 'jakarta.transaction', name: 'jakarta.transaction-api', version: project.jakartaTransactionApiVersion
 	//lombok
 	implementation group: 'org.projectlombok', name: 'lombok', version: project.lombokVersion
 	annotationProcessor 'org.projectlombok:lombok:'+project.lombokVersion
@@ -25,9 +25,8 @@ dependencies {
 	testImplementation 'org.junit.jupiter:junit-jupiter-engine:' + project.junitJupiterVersion
 	testImplementation 'org.atteo.classindex:classindex:' + project.atteoClassIndexVersion
 	testImplementation 'org.hibernate:hibernate-core:'+project.hibernateVersion
-	testImplementation 'javax.persistence:javax.persistence-api:'+project.javaxPersistenceVersion
 	testImplementation 'org.hsqldb:hsqldb:2.4.1'
-	testImplementation 'javax.validation:validation-api:'+project.javaxValidationVersion
+	testImplementation 'jakarta.validation:jakarta.validation-api:'+project.jakartaValidationVersion
 }
 
 test {

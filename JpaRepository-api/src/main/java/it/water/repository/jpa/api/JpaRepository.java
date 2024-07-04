@@ -18,9 +18,9 @@ package it.water.repository.jpa.api;
 
 import it.water.core.api.model.BaseEntity;
 import it.water.core.api.repository.BaseRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
 
-import javax.persistence.EntityManager;
-import javax.transaction.Transactional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
