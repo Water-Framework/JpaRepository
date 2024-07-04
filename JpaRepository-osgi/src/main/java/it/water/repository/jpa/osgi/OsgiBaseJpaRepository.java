@@ -16,14 +16,18 @@
 
 package it.water.repository.jpa.osgi;
 
+import com.arjuna.ats.jta.UserTransaction;
 import it.water.core.api.model.BaseEntity;
 import it.water.core.model.exceptions.WaterRuntimeException;
 import it.water.repository.jpa.BaseJpaRepositoryImpl;
 import it.water.repository.jpa.osgi.hibernate.OsgiScanner;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
-import jakarta.transaction.Transactional;
-import org.hibernate.cfg.*;
+import jakarta.transaction.*;
+import org.hibernate.cfg.EnvironmentSettings;
+import org.hibernate.cfg.JdbcSettings;
+import org.hibernate.cfg.PersistenceSettings;
+import org.hibernate.cfg.SchemaToolingSettings;
 import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.osgi.framework.*;
 import org.osgi.framework.wiring.BundleWiring;
@@ -51,13 +55,23 @@ public abstract class OsgiBaseJpaRepository<T extends BaseEntity> extends BaseJp
 
     @Override
     public void txExpr(Transactional.TxType txType, Consumer<EntityManager> function) {
-        function.accept(this.getEntityManager());
+        try {
+            manageTransaction(txType, em -> {
+                function.accept(getEntityManager());
+                return null;
+            });
+        } catch (Exception e) {
+            throw new WaterRuntimeException(e.getMessage());
+        }
     }
 
     @Override
     public <R> R tx(Transactional.TxType txType, Function<EntityManager, R> function) {
-        R result = function.apply(this.getEntityManager());
-        return result;
+        try {
+            return manageTransaction(txType, entityManager -> function.apply(getEntityManager()));
+        } catch (Exception e) {
+            throw new WaterRuntimeException(e.getMessage());
+        }
     }
 
     @Override
@@ -69,7 +83,7 @@ public abstract class OsgiBaseJpaRepository<T extends BaseEntity> extends BaseJp
         classLoaders.add(entityClassLoader);
         classLoaders.add(Thread.currentThread().getContextClassLoader());
         Map<String, Object> properties = new HashMap<>();
-        //properties.put("hibernate.transaction.jta.platform", "org.hibernate.service.jta.platform.internal.JBossStandAloneJtaPlatform");
+        properties.put("hibernate.transaction.jta.platform", "org.hibernate.service.jta.platform.internal.JBossStandAloneJtaPlatform");
         properties.put(PersistenceSettings.SCANNER_DISCOVERY, "class");
         properties.put(PersistenceSettings.SCANNER, new OsgiScanner(persistenceBundle));
         properties.put(SchemaToolingSettings.HBM2DDL_AUTO, "update");
@@ -98,4 +112,68 @@ public abstract class OsgiBaseJpaRepository<T extends BaseEntity> extends BaseJp
 
         return ctx.getService(osgiDataSource);
     }
+
+    private <R> R manageTransaction(Transactional.TxType txType, Function<EntityManager, R> function) throws SystemException, InvalidTransactionException, NotSupportedException, HeuristicRollbackException, HeuristicMixedException, RollbackException {
+        jakarta.transaction.UserTransaction userTransaction = UserTransaction.userTransaction();
+        TransactionManager transactionManager = com.arjuna.ats.jta.TransactionManager.transactionManager();
+        Transaction suspendedTransaction = null;
+        try {
+            switch (txType) {
+                case REQUIRED:
+                    if (userTransaction.getStatus() != Status.STATUS_ACTIVE) {
+                        userTransaction.begin();
+                    }
+                    break;
+                case REQUIRES_NEW:
+                    if (userTransaction.getStatus() == Status.STATUS_ACTIVE) {
+                        suspendedTransaction = transactionManager.suspend();
+                    }
+                    userTransaction.begin();
+                    break;
+                case MANDATORY:
+                    if (userTransaction.getStatus() != Status.STATUS_ACTIVE) {
+                        throw new IllegalStateException("No active transaction");
+                    }
+                    break;
+                case SUPPORTS:
+                    // No action required; if a transaction is active, it will be used
+                    break;
+                case NOT_SUPPORTED:
+                    if (userTransaction.getStatus() == Status.STATUS_ACTIVE) {
+                        suspendedTransaction = transactionManager.suspend();
+                    }
+                    break;
+                case NEVER:
+                    if (userTransaction.getStatus() == Status.STATUS_ACTIVE) {
+                        throw new IllegalStateException("Transaction context exists");
+                    }
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unsupported transaction type: " + txType);
+            }
+
+            if (userTransaction.getStatus() == Status.STATUS_ACTIVE && txType != Transactional.TxType.NOT_SUPPORTED && txType != Transactional.TxType.NEVER) {
+                getEntityManager().joinTransaction();
+            }
+
+            R result = function.apply(getEntityManager());
+
+            if (userTransaction.getStatus() == Status.STATUS_ACTIVE &&
+                    (txType == Transactional.TxType.REQUIRED || txType == Transactional.TxType.REQUIRES_NEW)) {
+                userTransaction.commit();
+            }
+
+            return result;
+        } catch (Exception e) {
+            if (userTransaction.getStatus() == Status.STATUS_ACTIVE) {
+                userTransaction.rollback();
+            }
+            throw e;
+        } finally {
+            if (suspendedTransaction != null) {
+                transactionManager.resume(suspendedTransaction);
+            }
+        }
+    }
+
 }
