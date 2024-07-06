@@ -7,6 +7,7 @@ dependencies {
 	//lombok
 	implementation group: 'org.projectlombok', name: 'lombok', version: project.lombokVersion
 	annotationProcessor 'org.projectlombok:lombok:'+project.lombokVersion
+	implementation group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.0'
 	//Jackson Json Views
 	implementation group: 'com.fasterxml.jackson.jaxrs', name: 'jackson-jaxrs-json-provider', version: project.jacksonJsonProviderVersion
 	implementation group:'it.water.core', name:'Core-api', version:project.waterVersion
@@ -26,6 +27,7 @@ dependencies {
 	testImplementation 'org.hibernate:hibernate-core:'+project.hibernateVersion
 	testImplementation 'org.hsqldb:hsqldb:2.4.1'
 	testImplementation 'jakarta.validation:jakarta.validation-api:'+project.jakartaValidationVersion
+	testAnnotationProcessor 'org.projectlombok:lombok:'+project.lombokVersion
 }
 
 test {
