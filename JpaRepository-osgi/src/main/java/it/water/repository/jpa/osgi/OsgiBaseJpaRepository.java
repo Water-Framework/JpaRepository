@@ -117,6 +117,10 @@ public abstract class OsgiBaseJpaRepository<T extends BaseEntity> extends BaseJp
         jakarta.transaction.UserTransaction userTransaction = UserTransaction.userTransaction();
         TransactionManager transactionManager = com.arjuna.ats.jta.TransactionManager.transactionManager();
         Transaction suspendedTransaction = null;
+        if((txType == Transactional.TxType.REQUIRED || txType == Transactional.TxType.REQUIRES_NEW || txType == Transactional.TxType.MANDATORY) && userTransaction.getStatus() == Status.STATUS_MARKED_ROLLBACK || userTransaction.getStatus() == Status.STATUS_ROLLEDBACK || userTransaction.getStatus() == Status.STATUS_ROLLING_BACK){
+            userTransaction.rollback();
+            transactionManager.begin();
+        }
         try {
             switch (txType) {
                 case REQUIRED:

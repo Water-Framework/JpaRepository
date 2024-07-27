@@ -21,7 +21,7 @@ DynamicImport-Package: *
 Export-Package: \
     it.water.repository.*,\
     !orh.hibernate.validator,\
-    org.hibernate.annotations.*;version=6.0.6.Final,\
+    org.hibernate.annotations.*;version=6.5.2.Final,\
     org.hibernate.*;version=6.5.2.Final,\
     com.arjuna.*;version=7.0.2.Final,\
     org.jboss.tm.*;version=8.0.0.Final
