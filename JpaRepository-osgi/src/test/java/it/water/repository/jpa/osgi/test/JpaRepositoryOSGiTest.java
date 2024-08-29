@@ -16,6 +16,7 @@
 
 package it.water.repository.jpa.osgi.test;
 
+import it.water.core.api.registry.ComponentRegistry;
 import it.water.core.api.repository.query.Query;
 import it.water.osgi.test.bundle.entity.TestEntity;
 import it.water.osgi.test.bundle.entity.TestEntitySystemApi;
@@ -71,6 +72,13 @@ public class JpaRepositoryOSGiTest extends KarafTestSupport {
         Assert.assertEquals("field1New", foundWithBaseRepo.getField1());
         Assert.assertEquals("field1New", testEntity.getField1());
         Assert.assertEquals("field2", testEntity.getField2());
+    }
+
+    @Test
+    public void testFindEntitySystemApi() {
+        ComponentRegistry waterComponentRegistry = getOsgiService(ComponentRegistry.class);
+        TestEntitySystemApi entitySystemApi = getOsgiService(TestEntitySystemApi.class);
+        Assert.assertNotNull(waterComponentRegistry.findEntitySystemApi(TestEntity.class.getName()));
     }
 
 }

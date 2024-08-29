@@ -267,6 +267,11 @@ class SpringApplicationTest {
         assertThrows(UnsupportedOperationException.class, () -> this.waterApplicationProperties.unloadProperties(customProps2));
     }
 
+    @Test
+    public void testFindEntitySystemApi() {
+        Assertions.assertNotNull(waterComponentRegistry.findEntitySystemApi(TestEntity.class.getName()));
+    }
+
     private List<TestEntity> createTestEntitiesList(int feed, int size) {
         ArrayList<TestEntity> toSave = new ArrayList<>();
         for (int i = 0; i < size; i++) {
