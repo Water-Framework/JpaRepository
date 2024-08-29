@@ -81,14 +81,6 @@ public abstract class AbstractJpaEntity extends AbstractEntity
     @Override
     @Transient
     @JsonIgnore
-    public String getSystemApiClassName() {
-        String className = this.getClass().getName();
-        return className.replace(".model.", ".api.") + "SystemApi";
-    }
-
-    @Override
-    @Transient
-    @JsonIgnore
     public String getResourceName() {
         return super.getResourceName();
     }
