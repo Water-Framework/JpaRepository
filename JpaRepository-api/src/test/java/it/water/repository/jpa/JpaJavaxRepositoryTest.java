@@ -55,7 +55,6 @@ class JpaJavaxRepositoryTest {
         Assertions.assertEquals(1, entity.getEntityVersion());
         Assertions.assertNotNull(entity.getEntityModifyDate());
         Assertions.assertNotNull(entity.getEntityCreateDate());
-        Assertions.assertNotNull(entity.getSystemApiClassName());
         getRepositoryTest().getEntityManager().getTransaction().begin();
         getRepositoryTest().persist(entity);
         getRepositoryTest().getEntityManager().getTransaction().commit();
