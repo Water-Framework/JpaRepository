@@ -17,10 +17,11 @@
 package it.water.repository.jpa.spring;
 
 import it.water.core.api.model.BaseEntity;
-import it.water.core.api.repository.RepositoryConstraintValidator;
 import it.water.repository.jpa.BaseJpaRepositoryImpl;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
 import jakarta.transaction.Transactional;
+import org.springframework.orm.jpa.EntityManagerFactoryUtils;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -36,24 +37,11 @@ import java.util.function.Function;
  */
 public class SpringBaseJpaRepositoryImpl<T extends BaseEntity> extends BaseJpaRepositoryImpl<T> {
     private TransactionTemplate transactionTemplate;
+    private EntityManagerFactory entityManagerFactory;
 
-    public SpringBaseJpaRepositoryImpl(Class<T> type) {
-        super(type);
-        initTransactionTemplate();
-    }
-
-    public SpringBaseJpaRepositoryImpl(Class<T> type, String persistenceUnitName) {
-        super(type, persistenceUnitName);
-        initTransactionTemplate();
-    }
-
-    public SpringBaseJpaRepositoryImpl(Class<T> type, EntityManager entityManager) {
-        super(type, entityManager);
-        initTransactionTemplate();
-    }
-
-    public SpringBaseJpaRepositoryImpl(Class<T> type, EntityManager entityManager, RepositoryConstraintValidator... dbConstraintValidators) {
-        super(type, entityManager, dbConstraintValidators);
+    public SpringBaseJpaRepositoryImpl(Class<T> type, EntityManagerFactory entityManagerFactory) {
+        super(type, entityManagerFactory.createEntityManager());
+        this.entityManagerFactory = entityManagerFactory;
         initTransactionTemplate();
     }
 
@@ -66,7 +54,8 @@ public class SpringBaseJpaRepositoryImpl<T extends BaseEntity> extends BaseJpaRe
     public void txExpr(Transactional.TxType txType, Consumer<EntityManager> function) {
         transactionTemplate.setPropagationBehavior(mapTxType(txType));
         transactionTemplate.execute(status -> {
-            function.accept(getEntityManager());
+            EntityManager entityManager = EntityManagerFactoryUtils.getTransactionalEntityManager(entityManagerFactory);
+            function.accept(entityManager);
             return null;
         });
     }
@@ -74,7 +63,10 @@ public class SpringBaseJpaRepositoryImpl<T extends BaseEntity> extends BaseJpaRe
     @Override
     public <R> R tx(Transactional.TxType txType, Function<EntityManager, R> function) {
         transactionTemplate.setPropagationBehavior(mapTxType(txType));
-        return transactionTemplate.execute(status -> function.apply(getEntityManager()));
+        return transactionTemplate.execute(status -> {
+            EntityManager entityManager = EntityManagerFactoryUtils.getTransactionalEntityManager(entityManagerFactory);
+            return function.apply(entityManager);
+        });
     }
 
     private int mapTxType(Transactional.TxType txType) {
@@ -89,5 +81,10 @@ public class SpringBaseJpaRepositoryImpl<T extends BaseEntity> extends BaseJpaRe
         else if (txType.equals(Transactional.TxType.MANDATORY))
             return TransactionDefinition.PROPAGATION_MANDATORY;
         throw new IllegalArgumentException("Invalid txType");
+    }
+
+    @Override
+    protected boolean isTransactionalSupported(EntityManager em) {
+        return true;
     }
 }

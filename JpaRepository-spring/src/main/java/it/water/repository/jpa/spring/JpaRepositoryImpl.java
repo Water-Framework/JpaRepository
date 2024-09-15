@@ -58,7 +58,7 @@ public class JpaRepositoryImpl<T extends AbstractJpaEntity> extends SimpleJpaRep
      * @param entityManager
      */
     private void initWaterBaseRepository(Class<T> entityClass, EntityManager entityManager) {
-        repository = new SpringBaseJpaRepositoryImpl<>(entityClass, entityManager) {
+        repository = new SpringBaseJpaRepositoryImpl<>(entityClass, entityManager.getEntityManagerFactory()) {
         };
     }
 

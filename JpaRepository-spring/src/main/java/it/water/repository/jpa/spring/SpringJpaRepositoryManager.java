@@ -29,6 +29,7 @@ import org.springframework.stereotype.Service;
 /**
  * @Author Aristide Cittadino
  * Spring Jpa Repository Manager simply create a spring based jpa repository impl.
+ * This class is used when repository object are injected inside spring context but they are not native in spring.
  */
 @Service
 public class SpringJpaRepositoryManager implements JpaRepositoryManager {
@@ -39,6 +40,6 @@ public class SpringJpaRepositoryManager implements JpaRepositoryManager {
     @Override
     public <T extends BaseEntity> JpaRepository<T> createConcreteRepository(Class<T> entityType, String persistenceUnit) {
         log.debug("Loading Entity Manager for {}", entityType.getName());
-        return new SpringBaseJpaRepositoryImpl<>(entityType, entityManagerFactory.createEntityManager());
+        return new SpringBaseJpaRepositoryImpl<>(entityType, entityManagerFactory);
     }
 }

@@ -180,4 +180,9 @@ public abstract class OsgiBaseJpaRepository<T extends BaseEntity> extends BaseJp
         }
     }
 
+    @Override
+    protected boolean isTransactionalSupported(EntityManager em) {
+        return true;
+    }
+
 }

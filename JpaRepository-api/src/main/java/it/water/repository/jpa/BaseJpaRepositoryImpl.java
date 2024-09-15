@@ -168,7 +168,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
      *
      * @return
      */
-    private boolean isTransactionalSupported(EntityManager em) {
+    protected boolean isTransactionalSupported(EntityManager em) {
         //Every eventual exception we have accessing the transaction context means that transaction system is working
         try {
             return em != null && (em.isJoinedToTransaction() || (em.getTransaction() != null && em.getTransaction().isActive()));

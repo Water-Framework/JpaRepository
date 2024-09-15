@@ -17,8 +17,11 @@ package it.water.repository.jpa.spring;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @Configuration
 @EnableJpaRepositories(basePackages = "it.water.repository.jpa.spring", repositoryFactoryBeanClass = RepositoryFactory.class)
+@EnableTransactionManagement
 public class SpringJpaRepositoryConfig {
+
 }

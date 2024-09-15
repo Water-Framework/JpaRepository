@@ -110,6 +110,5 @@ public class RepositoryFactory<R extends JpaRepository<T, K>,T,K> extends JpaRep
             return JpaRepositoryImpl.class;
         }
 
-
     }
 }
