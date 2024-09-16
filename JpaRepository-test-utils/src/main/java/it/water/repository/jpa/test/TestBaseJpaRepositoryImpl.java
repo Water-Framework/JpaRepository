@@ -18,6 +18,7 @@ package it.water.repository.jpa.test;
 
 import it.water.core.api.model.BaseEntity;
 import it.water.repository.jpa.BaseJpaRepositoryImpl;
+import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
 import java.util.function.Consumer;
@@ -37,5 +38,10 @@ public class TestBaseJpaRepositoryImpl<T extends BaseEntity> extends BaseJpaRepo
     @Override
     public Object tx(Transactional.TxType txType, Function function) {
         return function.apply(this.getEntityManager());
+    }
+
+    @Override
+    protected boolean isTransactionalSupported(EntityManager em) {
+        return false;
     }
 }

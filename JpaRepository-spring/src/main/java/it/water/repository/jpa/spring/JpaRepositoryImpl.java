@@ -28,6 +28,7 @@ import it.water.repository.query.DefaultQueryBuilder;
 import jakarta.persistence.EntityManager;
 import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.SimpleJpaRepository;
+import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.*;
 
@@ -41,14 +42,14 @@ public class JpaRepositoryImpl<T extends AbstractJpaEntity> extends SimpleJpaRep
     //wrapping WaterBaseRepository
     private BaseRepository<T> repository;
 
-    public JpaRepositoryImpl(JpaEntityInformation<T, ?> entityInformation, EntityManager entityManager) {
+    public JpaRepositoryImpl(JpaEntityInformation<T, ?> entityInformation, EntityManager entityManager, PlatformTransactionManager platformTransactionManager) {
         super(entityInformation, entityManager);
-        initWaterBaseRepository(entityInformation.getJavaType(), entityManager);
+        initWaterBaseRepository(entityInformation.getJavaType(), entityManager, platformTransactionManager);
     }
 
-    public JpaRepositoryImpl(Class<T> domainClass, EntityManager em) {
+    public JpaRepositoryImpl(Class<T> domainClass, EntityManager em, PlatformTransactionManager platformTransactionManager) {
         super(domainClass, em);
-        initWaterBaseRepository(domainClass, em);
+        initWaterBaseRepository(domainClass, em, platformTransactionManager);
     }
 
     /**
@@ -57,8 +58,8 @@ public class JpaRepositoryImpl<T extends AbstractJpaEntity> extends SimpleJpaRep
      * @param entityClass
      * @param entityManager
      */
-    private void initWaterBaseRepository(Class<T> entityClass, EntityManager entityManager) {
-        repository = new SpringBaseJpaRepositoryImpl<>(entityClass, entityManager.getEntityManagerFactory()) {
+    private void initWaterBaseRepository(Class<T> entityClass, EntityManager entityManager, PlatformTransactionManager platformTransactionManager) {
+        repository = new SpringBaseJpaRepositoryImpl<>(entityClass, entityManager.getEntityManagerFactory(), platformTransactionManager) {
         };
     }
 

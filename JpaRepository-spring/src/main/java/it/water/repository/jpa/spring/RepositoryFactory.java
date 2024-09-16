@@ -37,7 +37,7 @@ import org.springframework.lang.Nullable;
  * @param <T> Db Entity
  * @Author Aristide Cittadino
  */
-public class RepositoryFactory<R extends JpaRepository<T, K>,T,K> extends JpaRepositoryFactoryBean<R, T, K> {
+public class RepositoryFactory<R extends JpaRepository<T, K>, T, K> extends JpaRepositoryFactoryBean<R, T, K> {
     private EntityPathResolver entityPathResolver;
     private EscapeCharacter escapeCharacter = EscapeCharacter.DEFAULT;
     private JpaQueryMethodFactory queryMethodFactory;
@@ -92,7 +92,6 @@ public class RepositoryFactory<R extends JpaRepository<T, K>,T,K> extends JpaRep
 
     /**
      * Simple jpa executor factory
-     *
      */
     private static class WaterJpaExecutorFactory extends JpaRepositoryFactory {
 

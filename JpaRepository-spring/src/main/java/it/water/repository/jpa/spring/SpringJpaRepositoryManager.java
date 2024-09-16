@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
 
 
 /**
@@ -36,10 +37,12 @@ public class SpringJpaRepositoryManager implements JpaRepositoryManager {
     private Logger log = LoggerFactory.getLogger(SpringJpaRepositoryManager.class);
     @Autowired
     private EntityManagerFactory entityManagerFactory;
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @Override
     public <T extends BaseEntity> JpaRepository<T> createConcreteRepository(Class<T> entityType, String persistenceUnit) {
         log.debug("Loading Entity Manager for {}", entityType.getName());
-        return new SpringBaseJpaRepositoryImpl<>(entityType, entityManagerFactory);
+        return new SpringBaseJpaRepositoryImpl<>(entityType, entityManagerFactory, transactionManager);
     }
 }
