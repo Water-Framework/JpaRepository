@@ -42,15 +42,17 @@ public class JpaRepositoryImpl<T extends AbstractJpaEntity> extends SimpleJpaRep
     //wrapping WaterBaseRepository
     private BaseRepository<T> repository;
 
-    public JpaRepositoryImpl(JpaEntityInformation<T, ?> entityInformation, EntityManager entityManager, PlatformTransactionManager platformTransactionManager) {
+
+    public JpaRepositoryImpl(JpaEntityInformation<T, ?> entityInformation, EntityManager entityManager,PlatformTransactionManager transactionManager) {
         super(entityInformation, entityManager);
-        initWaterBaseRepository(entityInformation.getJavaType(), entityManager, platformTransactionManager);
+        initWaterBaseRepository(entityInformation.getJavaType(),entityManager,transactionManager);
     }
 
-    public JpaRepositoryImpl(Class<T> domainClass, EntityManager em, PlatformTransactionManager platformTransactionManager) {
+    public JpaRepositoryImpl(Class<T> domainClass, EntityManager em,PlatformTransactionManager transactionManager) {
         super(domainClass, em);
-        initWaterBaseRepository(domainClass, em, platformTransactionManager);
+        initWaterBaseRepository(domainClass, em,transactionManager);
     }
+
 
     /**
      * Constructing anonymouse implementation based on information passed to the jpa repo
@@ -58,9 +60,8 @@ public class JpaRepositoryImpl<T extends AbstractJpaEntity> extends SimpleJpaRep
      * @param entityClass
      * @param entityManager
      */
-    private void initWaterBaseRepository(Class<T> entityClass, EntityManager entityManager, PlatformTransactionManager platformTransactionManager) {
-        repository = new SpringBaseJpaRepositoryImpl<>(entityClass, entityManager.getEntityManagerFactory(), platformTransactionManager) {
-        };
+    private void initWaterBaseRepository(Class<T> entityClass, EntityManager entityManager,PlatformTransactionManager transactionManager) {
+        repository = new SpringBaseJpaRepositoryImpl<>(entityClass, entityManager.getEntityManagerFactory(), transactionManager) {};
     }
 
     @Override

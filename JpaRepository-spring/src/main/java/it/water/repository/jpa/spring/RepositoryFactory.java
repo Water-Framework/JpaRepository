@@ -23,13 +23,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.query.EscapeCharacter;
 import org.springframework.data.jpa.repository.query.JpaQueryMethodFactory;
+import org.springframework.data.jpa.repository.support.JpaEntityInformation;
 import org.springframework.data.jpa.repository.support.JpaRepositoryFactory;
 import org.springframework.data.jpa.repository.support.JpaRepositoryFactoryBean;
+import org.springframework.data.jpa.repository.support.JpaRepositoryImplementation;
 import org.springframework.data.querydsl.EntityPathResolver;
 import org.springframework.data.querydsl.SimpleEntityPathResolver;
+import org.springframework.data.repository.core.RepositoryInformation;
 import org.springframework.data.repository.core.RepositoryMetadata;
 import org.springframework.data.repository.core.support.RepositoryFactorySupport;
 import org.springframework.lang.Nullable;
+import org.springframework.transaction.PlatformTransactionManager;
+
+import java.io.Serializable;
 
 /**
  * @param <R> JpaRepository
@@ -41,19 +47,21 @@ public class RepositoryFactory<R extends JpaRepository<T, K>, T, K> extends JpaR
     private EntityPathResolver entityPathResolver;
     private EscapeCharacter escapeCharacter = EscapeCharacter.DEFAULT;
     private JpaQueryMethodFactory queryMethodFactory;
+    private PlatformTransactionManager platformTransactionManager;
 
     /**
      * Creates a new {@link JpaRepositoryFactoryBean} for the given repository interface.
      *
      * @param repositoryInterface must not be {@literal null}.
      */
-    public RepositoryFactory(Class<? extends R> repositoryInterface) {
+    public RepositoryFactory(Class<? extends R> repositoryInterface, PlatformTransactionManager transactionManager) {
         super(repositoryInterface);
+        this.platformTransactionManager = transactionManager;
     }
 
     @Override
     protected RepositoryFactorySupport createRepositoryFactory(EntityManager entityManager) {
-        WaterJpaExecutorFactory factory = new WaterJpaExecutorFactory(entityManager);
+        WaterJpaExecutorFactory factory = new WaterJpaExecutorFactory(entityManager, this.platformTransactionManager);
         factory.setEntityPathResolver(entityPathResolver);
         factory.setEscapeCharacter(escapeCharacter);
         if (queryMethodFactory != null) {
@@ -86,22 +94,29 @@ public class RepositoryFactory<R extends JpaRepository<T, K>, T, K> extends JpaR
 
     @Override
     public void setEscapeCharacter(char escapeCharacter) {
-
         this.escapeCharacter = EscapeCharacter.of(escapeCharacter);
     }
+
 
     /**
      * Simple jpa executor factory
      */
     private static class WaterJpaExecutorFactory extends JpaRepositoryFactory {
 
-        /**
-         * Simple jpa executor factory constructor
-         *
-         * @param entityManager entity manager
-         */
-        public WaterJpaExecutorFactory(EntityManager entityManager) {
+        private PlatformTransactionManager platformTransactionManager;
+
+        public WaterJpaExecutorFactory(EntityManager entityManager, PlatformTransactionManager platformTransactionManager) {
             super(entityManager);
+            this.platformTransactionManager = platformTransactionManager;
+        }
+
+        /**
+         * Platform transaction manager to support transaction management
+         *
+         * @return
+         */
+        public PlatformTransactionManager getPlatformTransactionManager() {
+            return platformTransactionManager;
         }
 
         @Override
@@ -109,5 +124,10 @@ public class RepositoryFactory<R extends JpaRepository<T, K>, T, K> extends JpaR
             return JpaRepositoryImpl.class;
         }
 
+        @Override
+        protected JpaRepositoryImplementation<?, ?> getTargetRepository(RepositoryInformation information, EntityManager entityManager) {
+            JpaEntityInformation<?, Serializable> entityInformation = getEntityInformation(information.getDomainType());
+            return new JpaRepositoryImpl(entityInformation, entityManager, platformTransactionManager);
+        }
     }
 }
