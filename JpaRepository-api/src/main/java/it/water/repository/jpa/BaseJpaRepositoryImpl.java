@@ -295,8 +295,24 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
             startTransactionIfNeeded(em);
             log.debug("Repository Remove entity {} with id: {}", this.type.getSimpleName(), id);
             T entity = em.find(type, id);
+            doRemove(entity, em);
+            commitTransactionIfNeeded(em);
+        } catch (RuntimeException e) {
+            //only in context where @transactional is not supported
+            if (!isTransactionalSupported(em)) {
+                em.getTransaction().rollback();
+            }
+            throw e;
+        }
+    }
+
+    protected void doRemove(T entity, EntityManager em) {
+        try {
+            startTransactionIfNeeded(em);
+            log.debug("Repository Remove entity {} with id: {}", this.type.getSimpleName(), entity.getId());
+            entity = em.merge(entity);
             em.remove(entity);
-            log.debug("Entity {}  with id: {}  removed", this.type.getSimpleName(), id);
+            log.debug("Entity {}  with id: {}  removed", this.type.getSimpleName(), entity.getId());
             commitTransactionIfNeeded(em);
         } catch (RuntimeException e) {
             //only in context where @transactional is not supported
@@ -316,7 +332,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
     public void remove(T entity) {
         log.debug("Repository Remove all entities {}: {}", this.type.getSimpleName(), entity);
         //post actions are preserved
-        this.remove(entity.getId());
+        txExpr(Transactional.TxType.REQUIRED, em -> doRemove(entity, em));
     }
 
     @Override
