@@ -34,7 +34,7 @@ import java.lang.reflect.Proxy;
 @ExtendWith(WaterTestExtension.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class TestUtilsTest implements Service {
+class TestUtilsTest implements Service {
 
     @Inject
     private JpaRepositoryManager testJpaRepositoryManager;
@@ -42,7 +42,7 @@ public class TestUtilsTest implements Service {
 
     @Test
     @Order(1)
-    public void testJpaRepositoryManager() {
+    void testJpaRepositoryManager() {
         Assertions.assertNotNull(testJpaRepositoryManager);
         TestServiceProxy<?> testServiceProxy = (TestServiceProxy)Proxy.getInvocationHandler(testJpaRepositoryManager);
         Assertions.assertTrue(testServiceProxy.getRealService() instanceof TestJpaRepositoryManager);
@@ -52,7 +52,7 @@ public class TestUtilsTest implements Service {
 
     @Test
     @Order(2)
-    public void testTransactions(){
+    void testTransactions(){
         Assertions.assertDoesNotThrow(() -> sampleRepo.txExpr(Transactional.TxType.REQUIRED,(entityManager) -> System.out.printf("sample transaction")));
         Assertions.assertDoesNotThrow(() -> sampleRepo.tx(Transactional.TxType.REQUIRED,(entityManager) -> System.out.printf("sample transaction")));
     }

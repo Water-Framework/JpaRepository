@@ -75,6 +75,8 @@ public class SpringBaseJpaRepositoryImpl<T extends BaseEntity> extends BaseJpaRe
             return TransactionDefinition.PROPAGATION_NEVER;
         else if (txType.equals(Transactional.TxType.MANDATORY))
             return TransactionDefinition.PROPAGATION_MANDATORY;
+        else if (txType.equals(Transactional.TxType.NOT_SUPPORTED))
+            return TransactionDefinition.PROPAGATION_NOT_SUPPORTED;
         throw new IllegalArgumentException("Invalid txType");
     }
 

@@ -15,6 +15,7 @@
  */
 package it.water.repository.jpa.repository;
 
+import it.water.core.api.repository.RepositoryConstraintValidator;
 import it.water.repository.jpa.BaseJpaRepositoryImpl;
 import it.water.repository.jpa.entity.TestEntity;
 import jakarta.persistence.EntityManager;
@@ -28,6 +29,22 @@ public class TestEntityRepository extends BaseJpaRepositoryImpl<TestEntity> {
 
     public TestEntityRepository(Class<TestEntity> type) {
         super(type);
+    }
+
+    public TestEntityRepository(Class<TestEntity> type, String persistenceUnitName) {
+        super(type, persistenceUnitName);
+    }
+
+    public TestEntityRepository(Class<TestEntity> type, String persistenceUnitName, EntityManager entityManager) {
+        super(type, persistenceUnitName, entityManager);
+    }
+
+    public TestEntityRepository(Class<TestEntity> type, EntityManager entityManager) {
+        super(type, entityManager);
+    }
+
+    public TestEntityRepository(Class<TestEntity> type, EntityManager entityManager, RepositoryConstraintValidator... dbConstraintValidators) {
+        super(type, entityManager, dbConstraintValidators);
     }
 
     @Override

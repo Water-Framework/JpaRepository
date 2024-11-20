@@ -50,6 +50,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.transaction.IllegalTransactionStateException;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -332,6 +333,23 @@ class SpringApplicationTest {
         Assertions.assertThrows(NoResultException.class, () -> testEntityWaterRepo.find("field1 = 'toRemove3'"));
         testEntityWaterRepo.remove(toRemove4);
         Assertions.assertThrows(NoResultException.class, () -> testEntityWaterRepo.find("field1 = 'toRemove4'"));
+    }
+
+    @Test
+    @Transactional
+    void testTransactions(){
+        Assertions.assertDoesNotThrow(() -> runTransaction(Transactional.TxType.REQUIRED));
+        Assertions.assertDoesNotThrow(() -> runTransaction(Transactional.TxType.MANDATORY));
+        Assertions.assertDoesNotThrow(() -> runTransaction(Transactional.TxType.REQUIRES_NEW));
+        Assertions.assertDoesNotThrow(() -> runTransaction(Transactional.TxType.NOT_SUPPORTED));
+        Assertions.assertThrows(IllegalTransactionStateException.class, () -> runTransaction(Transactional.TxType.NEVER));
+    }
+
+    private boolean runTransaction(Transactional.TxType txType){
+        return testEntityWaterRepo.tx(txType, (entityManager -> {
+            System.out.println("testTransaction");
+            return true;
+        }));
     }
 
     private List<TestEntity> createTestEntitiesList(int feed, int size) {

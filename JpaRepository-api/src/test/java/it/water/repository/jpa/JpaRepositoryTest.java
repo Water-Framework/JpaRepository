@@ -21,6 +21,7 @@ import it.water.core.api.repository.query.operations.*;
 import it.water.repository.entity.model.PaginatedResult;
 import it.water.repository.entity.model.exceptions.DuplicateEntityException;
 import it.water.repository.entity.model.exceptions.NoResultException;
+import it.water.repository.jpa.constraints.DuplicateConstraintValidator;
 import it.water.repository.jpa.entity.TestEntity;
 import it.water.repository.jpa.query.PredicateBuilder;
 import it.water.repository.jpa.repository.TestEntityRepository;
@@ -297,6 +298,15 @@ class JpaRepositoryTest {
         Assertions.assertEquals("uniqueField IN (a,b)", inOperation.getDefinition());
         Assertions.assertNotNull(predicateBuilder.buildPredicate(inOperation));
 
+    }
+
+    @Test
+    @Order(11)
+    void testBaseJpaRepositoryConstructors() {
+        Assertions.assertDoesNotThrow(() -> new TestEntityRepository(TestEntity.class,"water-default-persistence-unit"));
+        Assertions.assertDoesNotThrow(() -> new TestEntityRepository(TestEntity.class,"water-default-persistence-unit", getRepositoryTest().getEntityManager()));
+        Assertions.assertDoesNotThrow(() -> new TestEntityRepository(TestEntity.class, getRepositoryTest().getEntityManager()));
+        Assertions.assertDoesNotThrow(() -> new TestEntityRepository(TestEntity.class, getRepositoryTest().getEntityManager(),new DuplicateConstraintValidator()));
     }
 
 

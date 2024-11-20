@@ -56,7 +56,7 @@ sonarqube {
     properties {
         // Configurazione globale del progetto Sonar
         property "sonar.projectKey", "water.JpaRepository"
-        property "sonar.projectName", "JpaRepository"
+        property "sonar.projectName", "water.JpaRepository"
         property "sonar.projectVersion", project.waterVersion
 
         // Includes all folder and sources for submodules
