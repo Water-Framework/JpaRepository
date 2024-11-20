@@ -294,8 +294,9 @@ class SpringApplicationTest {
     void testWaterRepository() {
         Assertions.assertNotNull(testEntityWaterRepo);
         Assertions.assertNotNull(testEntityWaterRepo.getEntityManager());
+        Assertions.assertNotNull(testEntityWaterRepo.getPersistenceUnit());
         Assertions.assertTrue(testEntityWaterRepo.isEntityManagerNotNull());
-        Assertions.assertEquals(TestEntity.class.getName(),testEntityWaterRepo.getClassTypeName());
+        Assertions.assertEquals(TestEntity.class.getName(), testEntityWaterRepo.getClassTypeName());
         TestEntity newEntity = new TestEntity("testWaterRepo1", "testWaterRepo2");
         Assertions.assertDoesNotThrow(() -> testEntityWaterRepo.persist(newEntity));
         Assertions.assertTrue(newEntity.getId() > 0);
@@ -312,12 +313,14 @@ class SpringApplicationTest {
             return null;
         }));
         testEntityWaterRepo.txExpr(Transactional.TxType.REQUIRED, (entityManager -> System.out.println("testTransaction")));
-        TestEntity toRemove = new TestEntity("toRemove","toRemove");
-        TestEntity toRemove2 = new TestEntity("toRemove2","toRemove2");
-        TestEntity toRemove3 = new TestEntity("toRemove3","toRemove3");
+        TestEntity toRemove = new TestEntity("toRemove", "toRemove");
+        TestEntity toRemove2 = new TestEntity("toRemove2", "toRemove2");
+        TestEntity toRemove3 = new TestEntity("toRemove3", "toRemove3");
+        TestEntity toRemove4 = new TestEntity("toRemove4", "toRemove4");
         testEntityWaterRepo.persist(toRemove);
         testEntityWaterRepo.persist(toRemove2);
         testEntityWaterRepo.persist(toRemove3);
+        testEntityWaterRepo.persist(toRemove4);
         testEntityWaterRepo.remove(toRemove.getId());
         Assertions.assertThrows(NoResultException.class, () -> testEntityWaterRepo.find("field1 = 'toRemove'"));
         Assertions.assertDoesNotThrow(() -> testEntityWaterRepo.find("field1 = 'toRemove2'"));
@@ -327,6 +330,8 @@ class SpringApplicationTest {
         List<TestEntity> toRemoveList = Lists.list(toRemove3);
         Assertions.assertDoesNotThrow(() -> testEntityWaterRepo.removeAll(toRemoveList));
         Assertions.assertThrows(NoResultException.class, () -> testEntityWaterRepo.find("field1 = 'toRemove3'"));
+        testEntityWaterRepo.remove(toRemove4);
+        Assertions.assertThrows(NoResultException.class, () -> testEntityWaterRepo.find("field1 = 'toRemove4'"));
     }
 
     private List<TestEntity> createTestEntitiesList(int feed, int size) {

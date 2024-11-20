@@ -23,4 +23,5 @@ public interface TestEntityWaterRepo extends WaterJpaRepository<TestEntity> {
     //for coverage
     boolean isEntityManagerNotNull();
     String getClassTypeName();
+    String getPersistenceUnit();
 }

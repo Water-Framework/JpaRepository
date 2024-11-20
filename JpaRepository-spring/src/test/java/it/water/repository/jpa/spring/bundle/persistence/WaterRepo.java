@@ -42,4 +42,9 @@ public class WaterRepo extends WaterJpaRepositoryImpl<TestEntity> implements Tes
     public String getClassTypeName() {
         return this.getType().getName();
     }
+
+    @Override
+    public String getPersistenceUnit() {
+        return this.getPersistenceUnitName();
+    }
 }
