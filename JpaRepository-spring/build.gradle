@@ -46,9 +46,6 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-aop:' + project.springBootVersion
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa:' + project.springBootVersion
 
-	implementation 'org.atteo.classindex:classindex:' + project.atteoClassIndexVersion
-	annotationProcessor('org.atteo.classindex:classindex:' + project.atteoClassIndexVersion)
-
 	//needed by spring
 	testImplementation group: 'it.water.core', name: 'Core-api', version: project.waterVersion
 	testImplementation group: 'it.water.core', name: 'Core-bundle', version: project.waterVersion

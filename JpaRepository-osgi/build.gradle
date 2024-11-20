@@ -53,6 +53,18 @@ dependencies {
     testImplementation group: "org.ops4j.pax.exam", name: "pax-exam", version: project.paxExamVersion
 }
 
+jacocoTestReport {
+    dependsOn test
+    executionData fileTree(dir: "${buildDir}/jacoco", include: "*.exec")
+
+    reports {
+        xml.required = true
+        xml.outputLocation = file("${buildDir}/reports/jacoco/jacocoTestReport.xml")
+        html.required = true
+        csv.required = false
+    }
+}
+
 jar {
     from project.configurations.includeInJar.collect { it.isDirectory() ? it : zipTree(it) }
 }

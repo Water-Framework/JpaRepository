@@ -19,13 +19,16 @@ dependencies {
 
 	implementation (project(":JpaRepository-api"))
 
+	testAnnotationProcessor 'org.projectlombok:lombok:'+project.lombokVersion
+	testImplementation group:'it.water.core',name:'Core-testing-utils',version:project.waterVersion
+	testImplementation 'org.hibernate:hibernate-core:'+project.hibernateVersion
+	testImplementation 'org.hsqldb:hsqldb:2.4.1'
 	testImplementation 'org.mockito:mockito-core:4.6.1'
 	testImplementation 'org.mockito:mockito-junit-jupiter:4.6.1'
 	testImplementation 'org.junit.jupiter:junit-jupiter-api:' + project.junitJupiterVersion
 	testImplementation 'org.junit.jupiter:junit-jupiter-engine:' + project.junitJupiterVersion
 	testImplementation 'org.atteo.classindex:classindex:' + project.atteoClassIndexVersion
 	testImplementation 'org.hibernate:hibernate-core:'+project.hibernateVersion
-	testImplementation 'org.hsqldb:hsqldb:2.4.1'
 	testImplementation 'jakarta.validation:jakarta.validation-api:'+project.jakartaValidationVersion
 }
 

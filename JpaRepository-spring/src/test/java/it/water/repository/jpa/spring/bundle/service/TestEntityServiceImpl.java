@@ -51,8 +51,4 @@ public class TestEntityServiceImpl extends BaseEntityServiceImpl<TestEntity> imp
         return registry;
     }
 
-    @Override
-    protected SecurityContext getSecurityContext() {
-        return null;
-    }
 }

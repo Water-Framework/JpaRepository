@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2024 Aristide Cittadino
  *
@@ -15,18 +14,13 @@
  * limitations under the License.
  */
 
-package it.water.repository.jpa.osgi.test;
+package it.water.repository.jpa.spring.bundle.api;
 
-import it.water.implementation.osgi.util.test.karaf.WaterTestConfigurationBuilder;
-import org.ops4j.pax.exam.ConfigurationFactory;
-import org.ops4j.pax.exam.Option;
+import it.water.repository.jpa.api.WaterJpaRepository;
+import it.water.repository.jpa.spring.bundle.persistence.entity.TestEntity;
 
-public class JpaRepositoryTestConfiguration implements ConfigurationFactory {
-    @Override
-    public Option[] createConfiguration() {
-        return WaterTestConfigurationBuilder.createStandardConfiguration()
-                .withCodeCoverage("it.water.repository.jpa.osgi")
-                .withDebug("5005", false)
-                .build();
-    }
+public interface TestEntityWaterRepo extends WaterJpaRepository<TestEntity> {
+    //for coverage
+    boolean isEntityManagerNotNull();
+    String getClassTypeName();
 }

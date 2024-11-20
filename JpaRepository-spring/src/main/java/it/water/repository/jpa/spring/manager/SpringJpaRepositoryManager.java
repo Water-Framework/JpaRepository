@@ -14,26 +14,36 @@
  * limitations under the License.
  */
 
-package it.water.repository.jpa.test;
+package it.water.repository.jpa.spring.manager;
 
 import it.water.core.api.model.BaseEntity;
-import it.water.core.interceptors.annotations.FrameworkComponent;
 import it.water.repository.jpa.api.JpaRepository;
 import it.water.repository.jpa.api.JpaRepositoryManager;
+import it.water.repository.jpa.spring.SpringBaseJpaRepositoryImpl;
+import jakarta.persistence.EntityManagerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+
 
 /**
  * @Author Aristide Cittadino
- * Test Jpa Repository Manager simply create jpa repository impl.
+ * Spring Jpa Repository Manager simply create a spring based jpa repository impl.
+ * This class is used when repository object are injected inside spring context but they are not native in spring.
  */
-@FrameworkComponent
-public class TestJpaRepositoryManager implements JpaRepositoryManager {
-    private Logger log = LoggerFactory.getLogger(TestJpaRepositoryManager.class);
+@Service
+public class SpringJpaRepositoryManager implements JpaRepositoryManager {
+    private Logger log = LoggerFactory.getLogger(SpringJpaRepositoryManager.class);
+    @Autowired
+    private EntityManagerFactory entityManagerFactory;
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
     @Override
     public <T extends BaseEntity> JpaRepository<T> createConcreteRepository(Class<T> entityType, String persistenceUnit) {
         log.debug("Loading Entity Manager for {}", entityType.getName());
-        return new TestBaseJpaRepositoryImpl<>(entityType,persistenceUnit);
+        return new SpringBaseJpaRepositoryImpl<>(entityType, entityManagerFactory, transactionManager);
     }
 }

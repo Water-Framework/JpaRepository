@@ -28,14 +28,18 @@ import it.water.core.registry.model.ComponentConfigurationFactory;
 import it.water.implementation.spring.interceptors.SpringServiceInterceptor;
 import it.water.implementation.spring.util.filter.SpringComponentFilterBuilder;
 import it.water.repository.entity.model.exceptions.NoResultException;
+import it.water.repository.jpa.api.JpaRepositoryManager;
 import it.water.repository.jpa.spring.bundle.api.JpaTestEntityRepository;
 import it.water.repository.jpa.spring.bundle.api.ServiceInterface;
 import it.water.repository.jpa.spring.bundle.api.TestEntitySystemApi;
+import it.water.repository.jpa.spring.bundle.api.TestEntityWaterRepo;
 import it.water.repository.jpa.spring.bundle.persistence.entity.TestEntity;
+import it.water.repository.jpa.spring.bundle.service.SampleService;
 import it.water.repository.jpa.spring.bundle.service.ServiceInterfaceImpl2;
 import it.water.repository.jpa.spring.bundle.service.ServiceInterfaceImpl3;
-import it.water.repository.jpa.spring.bundle.service.ServiceTest;
 import it.water.repository.jpa.spring.bundle.service.SpringSystemServiceApi;
+import jakarta.transaction.Transactional;
+import org.assertj.core.util.Lists;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
@@ -47,13 +51,13 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import jakarta.transaction.Transactional;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
 import static org.junit.jupiter.api.Assertions.*;
+
 @ExtendWith(SpringExtension.class)
 @TestMethodOrder(MethodOrderer.MethodName.class)
 @SpringBootTest()
@@ -73,11 +77,15 @@ class SpringApplicationTest {
     @Autowired
     TestEntitySystemApi entitySystemApi;
     @Autowired
-    ServiceTest serviceTest;
+    SampleService serviceTest;
     @Autowired
     ApplicationProperties waterApplicationProperties;
     @Autowired
     SpringSystemServiceApi springSystemServiceApi;
+    @Autowired
+    JpaRepositoryManager springJpaRepositoryManager;
+    @Autowired
+    TestEntityWaterRepo testEntityWaterRepo;
 
     @Test
     void initSpringApplication() {
@@ -268,8 +276,57 @@ class SpringApplicationTest {
     }
 
     @Test
-    public void testFindEntitySystemApi() {
+    void testFindEntitySystemApi() {
         Assertions.assertNotNull(waterComponentRegistry.findEntitySystemApi(TestEntity.class.getName()));
+    }
+
+    @Test
+    void testJpaRepositoryConfiguration() {
+        Assertions.assertNotNull(new SpringJpaRepositoryConfig());
+    }
+
+    @Test
+    void testJpaRepositoryManager() {
+        Assertions.assertNotNull(springJpaRepositoryManager.createConcreteRepository(TestEntity.class, "default-persistence-unit"));
+    }
+
+    @Test
+    void testWaterRepository() {
+        Assertions.assertNotNull(testEntityWaterRepo);
+        Assertions.assertNotNull(testEntityWaterRepo.getEntityManager());
+        Assertions.assertTrue(testEntityWaterRepo.isEntityManagerNotNull());
+        Assertions.assertEquals(TestEntity.class.getName(),testEntityWaterRepo.getClassTypeName());
+        TestEntity newEntity = new TestEntity("testWaterRepo1", "testWaterRepo2");
+        Assertions.assertDoesNotThrow(() -> testEntityWaterRepo.persist(newEntity));
+        Assertions.assertTrue(newEntity.getId() > 0);
+        newEntity.setField1("testWaterRepo1Updated");
+        Assertions.assertDoesNotThrow(() -> testEntityWaterRepo.update(newEntity));
+        TestEntity foundEntity = testEntityWaterRepo.find(newEntity.getId());
+        Assertions.assertEquals(newEntity.getField1(), foundEntity.getField1());
+        Assertions.assertDoesNotThrow(() -> testEntityWaterRepo.findAll(-1, -1, null, null));
+        Query findByFiled1 = testEntityWaterRepo.getQueryBuilderInstance().field("field1").equalTo("testWaterRepo1Updated");
+        Assertions.assertNotNull(testEntityWaterRepo.find(findByFiled1));
+        Assertions.assertEquals(1, testEntityWaterRepo.countAll(findByFiled1));
+        testEntityWaterRepo.tx(Transactional.TxType.REQUIRED, (entityManager -> {
+            System.out.println("testTransaction");
+            return null;
+        }));
+        testEntityWaterRepo.txExpr(Transactional.TxType.REQUIRED, (entityManager -> System.out.println("testTransaction")));
+        TestEntity toRemove = new TestEntity("toRemove","toRemove");
+        TestEntity toRemove2 = new TestEntity("toRemove2","toRemove2");
+        TestEntity toRemove3 = new TestEntity("toRemove3","toRemove3");
+        testEntityWaterRepo.persist(toRemove);
+        testEntityWaterRepo.persist(toRemove2);
+        testEntityWaterRepo.persist(toRemove3);
+        testEntityWaterRepo.remove(toRemove.getId());
+        Assertions.assertThrows(NoResultException.class, () -> testEntityWaterRepo.find("field1 = 'toRemove'"));
+        Assertions.assertDoesNotThrow(() -> testEntityWaterRepo.find("field1 = 'toRemove2'"));
+        List<Long> ids = Lists.list(toRemove2.getId());
+        Assertions.assertDoesNotThrow(() -> testEntityWaterRepo.removeAllByIds(ids));
+        Assertions.assertThrows(NoResultException.class, () -> testEntityWaterRepo.find("field1 = 'toRemove2'"));
+        List<TestEntity> toRemoveList = Lists.list(toRemove3);
+        Assertions.assertDoesNotThrow(() -> testEntityWaterRepo.removeAll(toRemoveList));
+        Assertions.assertThrows(NoResultException.class, () -> testEntityWaterRepo.find("field1 = 'toRemove3'"));
     }
 
     private List<TestEntity> createTestEntitiesList(int feed, int size) {

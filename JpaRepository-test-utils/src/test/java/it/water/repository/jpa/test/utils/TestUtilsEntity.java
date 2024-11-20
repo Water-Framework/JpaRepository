@@ -1,4 +1,3 @@
-
 /*
  * Copyright 2024 Aristide Cittadino
  *
@@ -15,18 +14,18 @@
  * limitations under the License.
  */
 
-package it.water.repository.jpa.osgi.test;
+package it.water.repository.jpa.test.utils;
 
-import it.water.implementation.osgi.util.test.karaf.WaterTestConfigurationBuilder;
-import org.ops4j.pax.exam.ConfigurationFactory;
-import org.ops4j.pax.exam.Option;
+import it.water.repository.entity.model.AbstractEntity;
+import jakarta.persistence.Access;
+import jakarta.persistence.AccessType;
+import jakarta.persistence.Entity;
+import lombok.Data;
 
-public class JpaRepositoryTestConfiguration implements ConfigurationFactory {
-    @Override
-    public Option[] createConfiguration() {
-        return WaterTestConfigurationBuilder.createStandardConfiguration()
-                .withCodeCoverage("it.water.repository.jpa.osgi")
-                .withDebug("5005", false)
-                .build();
-    }
+@Entity
+@Access(AccessType.FIELD)
+@Data
+public class TestUtilsEntity extends AbstractEntity {
+
+    private String exampleField;
 }

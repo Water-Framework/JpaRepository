@@ -24,7 +24,7 @@ import org.springframework.stereotype.Component;
 
 
 @Component
-public class ServiceTest implements Service {
+public class SampleService implements Service {
 
     //Using this annotation to check if interceptors works correctly
     //normally inside Spring context you can user Autowired

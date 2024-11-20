@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package it.water.repository.jpa.test;
+package it.water.repository.jpa.test.utils;
 
 import it.water.core.api.model.BaseEntity;
 import it.water.repository.jpa.BaseJpaRepositoryImpl;

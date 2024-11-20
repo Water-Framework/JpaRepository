@@ -33,18 +33,14 @@ public class PredicateBuilder<T> {
     private CriteriaBuilder cb;
 
     public Predicate buildPredicate(Query filter) {
-        if (filter instanceof AndOperation) {
-            AndOperation andOperation = (AndOperation) filter;
+        if (filter instanceof AndOperation andOperation) {
             return cb.and(this.buildPredicate(andOperation.getOperand(0)), this.buildPredicate(andOperation.getOperand(1)));
-        } else if (filter instanceof OrOperation) {
-            OrOperation orOperation = (OrOperation) filter;
+        } else if (filter instanceof OrOperation orOperation) {
             return cb.or(this.buildPredicate(orOperation.getOperand(0)), this.buildPredicate(orOperation.getOperand(1)));
-        } else if (filter instanceof NotOperation) {
-            NotOperation notOperation = (NotOperation) filter;
+        } else if (filter instanceof NotOperation notOperation) {
             return cb.not(this.buildPredicate(notOperation.getOperand(0)));
-        } else if (filter instanceof BinaryValueOperation) {
+        } else if (filter instanceof BinaryValueOperation binaryValueOperation) {
             Path p = getPathForFields((AbstractOperation) filter);
-            BinaryValueOperation binaryValueOperation = (BinaryValueOperation) filter;
             FieldValueOperand fieldValue = (FieldValueOperand) binaryValueOperation.getOperand(1);
             if (filter instanceof EqualTo) {
                 return cb.equal(p, fieldValue.getValue());
@@ -67,8 +63,8 @@ public class PredicateBuilder<T> {
             }
         } else if (filter instanceof BinaryValueListOperation) {
             Path<?> p = getPathForFields((AbstractOperation) filter);
-            if (filter instanceof In) {
-                List<Object> values = getValueList((In) filter);
+            if (filter instanceof In in) {
+                List<Object> values = getValueList(in);
                 return p.in(values);
             }
         }
@@ -125,8 +121,8 @@ public class PredicateBuilder<T> {
         final AtomicReference<FieldNameOperand> field = new AtomicReference<>();
         binaryValueListOperation.operands().stream().forEach(operand -> {
             boolean isOperand = true;
-            if ((operand instanceof FieldNameOperand) && field.get() == null) {
-                field.set((FieldNameOperand) operand);
+            if ((operand instanceof FieldNameOperand fieldNameOperand) && field.get() == null) {
+                field.set(fieldNameOperand);
                 isOperand = false;
             } else if (!(operand instanceof FieldValueOperand) || ((operand instanceof FieldNameOperand) && field.get() != null)) {
                 throw new IllegalArgumentException("Invalid argument for expression, value needed");

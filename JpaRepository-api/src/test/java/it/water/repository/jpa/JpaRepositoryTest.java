@@ -34,7 +34,7 @@ import java.util.List;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class JpaJavaxRepositoryTest {
+class JpaRepositoryTest {
     private TestEntityRepository testEntityRepository;
 
     @Test
@@ -247,22 +247,23 @@ class JpaJavaxRepositoryTest {
     @Test
     @Order(10)
     void testJavaxPredicateGeneration() {
-        Root<TestEntity> root = getRepositoryTest().getEntityManager().getCriteriaBuilder().createQuery(TestEntity.class).from(TestEntity.class);
-        PredicateBuilder<TestEntity> predicateBuilder = new PredicateBuilder<>(root, getRepositoryTest().getEntityManager().getCriteriaBuilder().createQuery(TestEntity.class), getRepositoryTest().getEntityManager().getCriteriaBuilder());
+        TestEntityRepository testEntityRepository = getRepositoryTest();
+        Root<TestEntity> root = testEntityRepository.getEntityManager().getCriteriaBuilder().createQuery(TestEntity.class).from(TestEntity.class);
+        PredicateBuilder<TestEntity> predicateBuilder = new PredicateBuilder<>(root, testEntityRepository.getEntityManager().getCriteriaBuilder().createQuery(TestEntity.class), testEntityRepository.getEntityManager().getCriteriaBuilder());
         NotOperation notOperation = new NotOperation();
-        notOperation.defineOperands(getRepositoryTest().getQueryBuilderInstance().field("uniqueField").equalTo("a"));
+        notOperation.defineOperands(testEntityRepository.getQueryBuilderInstance().field("uniqueField").equalTo("a"));
         Assertions.assertEquals("NOT (uniqueField = a)", notOperation.getDefinition());
         Assertions.assertNotNull(predicateBuilder.buildPredicate(notOperation));
 
         NotEqualTo notEqualToOperation = new NotEqualTo();
         Assertions.assertEquals("NotEqualTo (!=)", notEqualToOperation.getName());
-        notEqualToOperation.defineOperands(getRepositoryTest().getQueryBuilderInstance().field("uniqueField"), new FieldValueOperand("a"));
+        notEqualToOperation.defineOperands(testEntityRepository.getQueryBuilderInstance().field("uniqueField"), new FieldValueOperand("a"));
         Assertions.assertEquals("uniqueField <> a", notEqualToOperation.getDefinition());
         Assertions.assertNotNull(predicateBuilder.buildPredicate(notEqualToOperation));
 
         EqualTo equalToOperation = new EqualTo();
         Assertions.assertEquals("EqualTo (=)", equalToOperation.getName());
-        equalToOperation.defineOperands(getRepositoryTest().getQueryBuilderInstance().field("uniqueField"), new FieldValueOperand("a"));
+        equalToOperation.defineOperands(testEntityRepository.getQueryBuilderInstance().field("uniqueField"), new FieldValueOperand("a"));
         Assertions.assertEquals("uniqueField = a", equalToOperation.getDefinition());
         Assertions.assertNotNull(predicateBuilder.buildPredicate(equalToOperation));
 
@@ -272,27 +273,27 @@ class JpaJavaxRepositoryTest {
         Assertions.assertNotNull(predicateBuilder.buildPredicate(lowerThanOperation));
 
         LowerOrEqualThan lowerOrEqualThanOperation = new LowerOrEqualThan();
-        lowerOrEqualThanOperation.defineOperands(getRepositoryTest().getQueryBuilderInstance().field("numberField"), new FieldValueOperand(10));
+        lowerOrEqualThanOperation.defineOperands(testEntityRepository.getQueryBuilderInstance().field("numberField"), new FieldValueOperand(10));
         Assertions.assertEquals("numberField <= 10", lowerOrEqualThanOperation.getDefinition());
         Assertions.assertNotNull(predicateBuilder.buildPredicate(lowerOrEqualThanOperation));
 
         GreaterThan greaterThanOperation = new GreaterThan();
-        greaterThanOperation.defineOperands(getRepositoryTest().getQueryBuilderInstance().field("numberField"), new FieldValueOperand(10));
+        greaterThanOperation.defineOperands(testEntityRepository.getQueryBuilderInstance().field("numberField"), new FieldValueOperand(10));
         Assertions.assertEquals("numberField > 10", greaterThanOperation.getDefinition());
         Assertions.assertNotNull(predicateBuilder.buildPredicate(greaterThanOperation));
 
         GreaterOrEqualThan greaterOrEqualThanOperation = new GreaterOrEqualThan();
-        greaterOrEqualThanOperation.defineOperands(getRepositoryTest().getQueryBuilderInstance().field("numberField"), new FieldValueOperand(10));
+        greaterOrEqualThanOperation.defineOperands(testEntityRepository.getQueryBuilderInstance().field("numberField"), new FieldValueOperand(10));
         Assertions.assertEquals("numberField >= 10", greaterOrEqualThanOperation.getDefinition());
         Assertions.assertNotNull(predicateBuilder.buildPredicate(greaterOrEqualThanOperation));
 
         Like likeOperation = new Like();
-        likeOperation.defineOperands(getRepositoryTest().getQueryBuilderInstance().field("uniqueField"), new FieldValueOperand("a"));
+        likeOperation.defineOperands(testEntityRepository.getQueryBuilderInstance().field("uniqueField"), new FieldValueOperand("a"));
         Assertions.assertEquals("uniqueField LIKE a", likeOperation.getDefinition());
         Assertions.assertNotNull(predicateBuilder.buildPredicate(likeOperation));
 
         In inOperation = new In();
-        inOperation.defineOperands(getRepositoryTest().getQueryBuilderInstance().field("uniqueField"), new FieldValueOperand("a"), new FieldValueOperand("b"));
+        inOperation.defineOperands(testEntityRepository.getQueryBuilderInstance().field("uniqueField"), new FieldValueOperand("a"), new FieldValueOperand("b"));
         Assertions.assertEquals("uniqueField IN (a,b)", inOperation.getDefinition());
         Assertions.assertNotNull(predicateBuilder.buildPredicate(inOperation));
 

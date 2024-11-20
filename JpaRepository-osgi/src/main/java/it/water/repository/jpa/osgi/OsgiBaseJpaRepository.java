@@ -122,52 +122,8 @@ public abstract class OsgiBaseJpaRepository<T extends BaseEntity> extends BaseJp
             transactionManager.begin();
         }
         try {
-            switch (txType) {
-                case REQUIRED:
-                    if (userTransaction.getStatus() != Status.STATUS_ACTIVE) {
-                        userTransaction.begin();
-                    }
-                    break;
-                case REQUIRES_NEW:
-                    if (userTransaction.getStatus() == Status.STATUS_ACTIVE) {
-                        suspendedTransaction = transactionManager.suspend();
-                    }
-                    userTransaction.begin();
-                    break;
-                case MANDATORY:
-                    if (userTransaction.getStatus() != Status.STATUS_ACTIVE) {
-                        throw new IllegalStateException("No active transaction");
-                    }
-                    break;
-                case SUPPORTS:
-                    // No action required; if a transaction is active, it will be used
-                    break;
-                case NOT_SUPPORTED:
-                    if (userTransaction.getStatus() == Status.STATUS_ACTIVE) {
-                        suspendedTransaction = transactionManager.suspend();
-                    }
-                    break;
-                case NEVER:
-                    if (userTransaction.getStatus() == Status.STATUS_ACTIVE) {
-                        throw new IllegalStateException("Transaction context exists");
-                    }
-                    break;
-                default:
-                    throw new UnsupportedOperationException("Unsupported transaction type: " + txType);
-            }
-
-            if (userTransaction.getStatus() == Status.STATUS_ACTIVE && txType != Transactional.TxType.NOT_SUPPORTED && txType != Transactional.TxType.NEVER) {
-                getEntityManager().joinTransaction();
-            }
-
-            R result = function.apply(getEntityManager());
-
-            if (userTransaction.getStatus() == Status.STATUS_ACTIVE &&
-                    (txType == Transactional.TxType.REQUIRED || txType == Transactional.TxType.REQUIRES_NEW)) {
-                userTransaction.commit();
-            }
-
-            return result;
+            suspendedTransaction = this.setupTransaction(userTransaction,txType,transactionManager);
+            return runTransaction(userTransaction,txType,function);
         } catch (Exception e) {
             if (userTransaction.getStatus() == Status.STATUS_ACTIVE) {
                 userTransaction.rollback();
@@ -178,6 +134,62 @@ public abstract class OsgiBaseJpaRepository<T extends BaseEntity> extends BaseJp
                 transactionManager.resume(suspendedTransaction);
             }
         }
+    }
+
+    /**
+     * returns the suspended transaction if any
+     * @param userTransaction
+     * @param txType
+     * @return
+     */
+    private Transaction setupTransaction(jakarta.transaction.UserTransaction userTransaction,Transactional.TxType txType,TransactionManager transactionManager) throws SystemException, NotSupportedException {
+        Transaction suspendedTransaction = null;
+        switch (txType) {
+            case REQUIRED:
+                if (userTransaction.getStatus() != Status.STATUS_ACTIVE) {
+                    userTransaction.begin();
+                }
+                break;
+            case REQUIRES_NEW:
+                if (userTransaction.getStatus() == Status.STATUS_ACTIVE) {
+                    suspendedTransaction = transactionManager.suspend();
+                }
+                userTransaction.begin();
+                break;
+            case MANDATORY:
+                if (userTransaction.getStatus() != Status.STATUS_ACTIVE) {
+                    throw new IllegalStateException("No active transaction");
+                }
+                break;
+            case SUPPORTS:
+                // No action required; if a transaction is active, it will be used
+                break;
+            case NOT_SUPPORTED:
+                if (userTransaction.getStatus() == Status.STATUS_ACTIVE) {
+                    suspendedTransaction = transactionManager.suspend();
+                }
+                break;
+            case NEVER:
+                if (userTransaction.getStatus() == Status.STATUS_ACTIVE) {
+                    throw new IllegalStateException("Transaction context exists");
+                }
+                break;
+            default:
+                throw new UnsupportedOperationException("Unsupported transaction type: " + txType);
+        }
+        return suspendedTransaction;
+    }
+
+    private  <R> R runTransaction(jakarta.transaction.UserTransaction userTransaction,Transactional.TxType txType,Function<EntityManager, R> function) throws SystemException, HeuristicRollbackException, HeuristicMixedException, RollbackException{
+        if (userTransaction.getStatus() == Status.STATUS_ACTIVE && txType != Transactional.TxType.NOT_SUPPORTED && txType != Transactional.TxType.NEVER) {
+            getEntityManager().joinTransaction();
+        }
+        R result = function.apply(getEntityManager());
+        if (userTransaction.getStatus() == Status.STATUS_ACTIVE &&
+                (txType == Transactional.TxType.REQUIRED || txType == Transactional.TxType.REQUIRES_NEW)) {
+            userTransaction.commit();
+        }
+        return result;
     }
 
     @Override
