@@ -39,9 +39,4 @@ public class TestBaseJpaRepositoryImpl<T extends BaseEntity> extends BaseJpaRepo
     public Object tx(Transactional.TxType txType, Function function) {
         return function.apply(this.getEntityManager());
     }
-
-    @Override
-    protected boolean isTransactionalSupported(EntityManager em) {
-        return false;
-    }
 }
