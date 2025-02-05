@@ -20,9 +20,11 @@ import com.arjuna.ats.jta.UserTransaction;
 import it.water.core.api.model.BaseEntity;
 import it.water.core.model.exceptions.WaterRuntimeException;
 import it.water.repository.jpa.BaseJpaRepositoryImpl;
+import it.water.repository.jpa.WaterPersistenceUnitInfo;
 import it.water.repository.jpa.osgi.hibernate.OsgiScanner;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.spi.PersistenceUnitTransactionType;
 import jakarta.transaction.*;
 import org.hibernate.cfg.EnvironmentSettings;
 import org.hibernate.cfg.JdbcSettings;
@@ -35,7 +37,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Optional;
+import java.util.Properties;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -82,14 +87,16 @@ public abstract class OsgiBaseJpaRepository<T extends BaseEntity> extends BaseJp
         Collection<ClassLoader> classLoaders = new ArrayList<>();
         classLoaders.add(entityClassLoader);
         classLoaders.add(Thread.currentThread().getContextClassLoader());
-        Map<String, Object> properties = new HashMap<>();
+        Properties properties = new Properties();
         properties.put("hibernate.transaction.jta.platform", "org.hibernate.service.jta.platform.internal.JBossStandAloneJtaPlatform");
         properties.put(PersistenceSettings.SCANNER_DISCOVERY, "class");
         properties.put(PersistenceSettings.SCANNER, new OsgiScanner(persistenceBundle));
         properties.put(SchemaToolingSettings.HBM2DDL_AUTO, "update");
         properties.put(JdbcSettings.JAKARTA_JTA_DATASOURCE, ds);
         properties.put(EnvironmentSettings.CLASSLOADERS, classLoaders);
-        return new HibernatePersistenceProvider().createEntityManagerFactory(getPersistenceUnitName(), properties);
+        WaterPersistenceUnitInfo waterPersistenceUnitInfo = new WaterPersistenceUnitInfo(getPersistenceUnitName(),type, "org.hibernate.jpa.HibernatePersistenceProvider", PersistenceUnitTransactionType.JTA, ds, null, null);
+        waterPersistenceUnitInfo.setClassLoader(entityClassLoader);
+        return new HibernatePersistenceProvider().createContainerEntityManagerFactory(waterPersistenceUnitInfo, properties);
     }
 
     private DataSource getDataSource() {
@@ -117,13 +124,13 @@ public abstract class OsgiBaseJpaRepository<T extends BaseEntity> extends BaseJp
         jakarta.transaction.UserTransaction userTransaction = UserTransaction.userTransaction();
         TransactionManager transactionManager = com.arjuna.ats.jta.TransactionManager.transactionManager();
         Transaction suspendedTransaction = null;
-        if((txType == Transactional.TxType.REQUIRED || txType == Transactional.TxType.REQUIRES_NEW || txType == Transactional.TxType.MANDATORY) && userTransaction.getStatus() == Status.STATUS_MARKED_ROLLBACK || userTransaction.getStatus() == Status.STATUS_ROLLEDBACK || userTransaction.getStatus() == Status.STATUS_ROLLING_BACK){
+        if ((txType == Transactional.TxType.REQUIRED || txType == Transactional.TxType.REQUIRES_NEW || txType == Transactional.TxType.MANDATORY) && userTransaction.getStatus() == Status.STATUS_MARKED_ROLLBACK || userTransaction.getStatus() == Status.STATUS_ROLLEDBACK || userTransaction.getStatus() == Status.STATUS_ROLLING_BACK) {
             userTransaction.rollback();
             transactionManager.begin();
         }
         try {
-            suspendedTransaction = this.setupTransaction(userTransaction,txType,transactionManager);
-            return runTransaction(userTransaction,txType,function);
+            suspendedTransaction = this.setupTransaction(userTransaction, txType, transactionManager);
+            return runTransaction(userTransaction, txType, function);
         } catch (Exception e) {
             if (userTransaction.getStatus() == Status.STATUS_ACTIVE) {
                 userTransaction.rollback();
@@ -138,11 +145,12 @@ public abstract class OsgiBaseJpaRepository<T extends BaseEntity> extends BaseJp
 
     /**
      * returns the suspended transaction if any
+     *
      * @param userTransaction
      * @param txType
      * @return
      */
-    private Transaction setupTransaction(jakarta.transaction.UserTransaction userTransaction,Transactional.TxType txType,TransactionManager transactionManager) throws SystemException, NotSupportedException {
+    private Transaction setupTransaction(jakarta.transaction.UserTransaction userTransaction, Transactional.TxType txType, TransactionManager transactionManager) throws SystemException, NotSupportedException {
         Transaction suspendedTransaction = null;
         switch (txType) {
             case REQUIRED:
@@ -180,7 +188,7 @@ public abstract class OsgiBaseJpaRepository<T extends BaseEntity> extends BaseJp
         return suspendedTransaction;
     }
 
-    private  <R> R runTransaction(jakarta.transaction.UserTransaction userTransaction,Transactional.TxType txType,Function<EntityManager, R> function) throws SystemException, HeuristicRollbackException, HeuristicMixedException, RollbackException{
+    private <R> R runTransaction(jakarta.transaction.UserTransaction userTransaction, Transactional.TxType txType, Function<EntityManager, R> function) throws SystemException, HeuristicRollbackException, HeuristicMixedException, RollbackException {
         if (userTransaction.getStatus() == Status.STATUS_ACTIVE && txType != Transactional.TxType.NOT_SUPPORTED && txType != Transactional.TxType.NEVER) {
             getEntityManager().joinTransaction();
         }

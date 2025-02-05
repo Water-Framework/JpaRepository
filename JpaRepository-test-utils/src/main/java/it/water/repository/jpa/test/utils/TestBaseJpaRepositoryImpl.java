@@ -18,7 +18,6 @@ package it.water.repository.jpa.test.utils;
 
 import it.water.core.api.model.BaseEntity;
 import it.water.repository.jpa.BaseJpaRepositoryImpl;
-import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
 
 import java.util.function.Consumer;

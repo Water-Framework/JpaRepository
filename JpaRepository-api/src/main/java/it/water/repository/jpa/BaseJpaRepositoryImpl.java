@@ -36,14 +36,19 @@ import it.water.repository.jpa.query.PredicateBuilder;
 import it.water.repository.query.DefaultQueryBuilder;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
-import jakarta.persistence.Persistence;
+import jakarta.persistence.PersistenceException;
 import jakarta.persistence.criteria.*;
+import jakarta.persistence.spi.PersistenceProvider;
+import jakarta.persistence.spi.PersistenceProviderResolver;
+import jakarta.persistence.spi.PersistenceProviderResolverHolder;
+import jakarta.persistence.spi.PersistenceUnitTransactionType;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.sql.DataSource;
 import java.util.*;
 
 
@@ -158,7 +163,29 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
     }
 
     protected EntityManagerFactory createDefaultEntityManagerFactory() {
-        return Persistence.createEntityManagerFactory(this.persistenceUnitName);
+        //default persistence unit info is focused on tests,so resource local and use hibernate, override this method to change the logic
+        Properties jpaProperties = new Properties();
+        jpaProperties.put("javax.persistence.jdbc.driver", "org.hsqldb.jdbcDriver");
+        jpaProperties.put("javax.persistence.jdbc.url", "jdbc:hsqldb:mem:testdb");
+        jpaProperties.put("javax.persistence.jdbc.user", "sa");
+        jpaProperties.put("javax.persistence.jdbc.password", "");
+        return setupEntityManagerFactory(persistenceUnitName, PersistenceUnitTransactionType.RESOURCE_LOCAL, null, null, jpaProperties);
+    }
+
+    protected EntityManagerFactory setupEntityManagerFactory(String persistenceUnitProviderClassName, PersistenceUnitTransactionType transactionType, DataSource jtaDs, DataSource noJtaDs, Properties properties) {
+        EntityManagerFactory emf = null;
+        PersistenceProviderResolver resolver = PersistenceProviderResolverHolder.getPersistenceProviderResolver();
+        WaterPersistenceUnitInfo waterPersistenceUnitInfo = new WaterPersistenceUnitInfo(persistenceUnitName, type, persistenceUnitProviderClassName, transactionType, jtaDs, noJtaDs, properties);
+        for (PersistenceProvider provider : resolver.getPersistenceProviders()) {
+            emf = provider.createContainerEntityManagerFactory(waterPersistenceUnitInfo, properties);
+            if (emf != null) {
+                break;
+            }
+        }
+        if (emf == null) {
+            throw new PersistenceException("No Persistence provider for EntityManager named " + persistenceUnitName);
+        }
+        return emf;
     }
 
     /**
