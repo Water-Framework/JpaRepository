@@ -25,5 +25,4 @@ Export-Package: \
     org.hibernate.*;version=6.5.2.Final,\
     com.arjuna.*;version=7.0.2.Final,\
     org.jboss.tm.*;version=8.0.0.Final
-
 -cdiannotations: *;discover=annotated_by_bean
