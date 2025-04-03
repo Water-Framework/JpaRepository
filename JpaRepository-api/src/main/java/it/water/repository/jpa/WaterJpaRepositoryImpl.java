@@ -71,18 +71,38 @@ public class WaterJpaRepositoryImpl<T extends BaseEntity> implements WaterJpaRep
     }
 
     @Override
+    public Class<T> getEntityType() {
+        return this.type;
+    }
+
+    @Override
     public T persist(T entity) {
-        return getConcreteRepository().persist(entity);
+        return this.persist(entity, null);
+    }
+
+    @Override
+    public T persist(T entity, Runnable runnable) {
+        return getConcreteRepository().persist(entity, runnable);
     }
 
     @Override
     public T update(T entity) {
-        return getConcreteRepository().update(entity);
+        return this.update(entity, null);
+    }
+
+    @Override
+    public T update(T entity, Runnable runnable) {
+        return getConcreteRepository().update(entity, runnable);
     }
 
     @Override
     public void remove(long id) {
-        getConcreteRepository().remove(id);
+        remove(id, null);
+    }
+
+    @Override
+    public void remove(long id, Runnable runnable) {
+        getConcreteRepository().remove(id, runnable);
     }
 
     @Override

@@ -43,14 +43,14 @@ public class JpaRepositoryImpl<T extends AbstractJpaEntity> extends SimpleJpaRep
     private BaseRepository<T> repository;
 
 
-    public JpaRepositoryImpl(JpaEntityInformation<T, ?> entityInformation, EntityManager entityManager,PlatformTransactionManager transactionManager) {
+    public JpaRepositoryImpl(JpaEntityInformation<T, ?> entityInformation, EntityManager entityManager, PlatformTransactionManager transactionManager) {
         super(entityInformation, entityManager);
-        initWaterBaseRepository(entityInformation.getJavaType(),entityManager,transactionManager);
+        initWaterBaseRepository(entityInformation.getJavaType(), entityManager, transactionManager);
     }
 
-    public JpaRepositoryImpl(Class<T> domainClass, EntityManager em,PlatformTransactionManager transactionManager) {
+    public JpaRepositoryImpl(Class<T> domainClass, EntityManager em, PlatformTransactionManager transactionManager) {
         super(domainClass, em);
-        initWaterBaseRepository(domainClass, em,transactionManager);
+        initWaterBaseRepository(domainClass, em, transactionManager);
     }
 
 
@@ -60,8 +60,14 @@ public class JpaRepositoryImpl<T extends AbstractJpaEntity> extends SimpleJpaRep
      * @param entityClass
      * @param entityManager
      */
-    private void initWaterBaseRepository(Class<T> entityClass, EntityManager entityManager,PlatformTransactionManager transactionManager) {
-        repository = new SpringBaseJpaRepositoryImpl<>(entityClass, entityManager.getEntityManagerFactory(), transactionManager) {};
+    private void initWaterBaseRepository(Class<T> entityClass, EntityManager entityManager, PlatformTransactionManager transactionManager) {
+        repository = new SpringBaseJpaRepositoryImpl<>(entityClass, entityManager.getEntityManagerFactory(), transactionManager) {
+        };
+    }
+
+    @Override
+    public Class<T> getEntityType() {
+        return repository.getEntityType();
     }
 
     @Override
@@ -143,17 +149,32 @@ public class JpaRepositoryImpl<T extends AbstractJpaEntity> extends SimpleJpaRep
 
     @Override
     public T persist(T entity) {
-        return this.repository.persist(entity);
+        return this.persist(entity, null);
+    }
+
+    @Override
+    public T persist(T entity, Runnable runnable) {
+        return this.repository.persist(entity, runnable);
     }
 
     @Override
     public T update(T entity) {
-        return this.repository.update(entity);
+        return this.update(entity, null);
+    }
+
+    @Override
+    public T update(T entity, Runnable runnable) {
+        return this.repository.update(entity, null);
     }
 
     @Override
     public void remove(long id) {
-        this.repository.remove(id);
+        this.remove(id, null);
+    }
+
+    @Override
+    public void remove(long id, Runnable runnable) {
+        this.repository.remove(id, runnable);
     }
 
     @Override

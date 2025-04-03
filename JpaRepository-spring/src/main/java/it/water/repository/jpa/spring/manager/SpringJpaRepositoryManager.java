@@ -17,6 +17,7 @@
 package it.water.repository.jpa.spring.manager;
 
 import it.water.core.api.model.BaseEntity;
+import it.water.core.api.registry.ComponentRegistry;
 import it.water.repository.jpa.api.JpaRepository;
 import it.water.repository.jpa.api.JpaRepositoryManager;
 import it.water.repository.jpa.spring.SpringBaseJpaRepositoryImpl;
@@ -40,10 +41,14 @@ public class SpringJpaRepositoryManager implements JpaRepositoryManager {
     private EntityManagerFactory entityManagerFactory;
     @Autowired
     private PlatformTransactionManager transactionManager;
+    @Autowired
+    private ComponentRegistry componentRegistry;
 
     @Override
     public <T extends BaseEntity> JpaRepository<T> createConcreteRepository(Class<T> entityType, String persistenceUnit) {
         log.debug("Loading Entity Manager for {}", entityType.getName());
-        return new SpringBaseJpaRepositoryImpl<>(entityType, entityManagerFactory, transactionManager);
+        SpringBaseJpaRepositoryImpl<T> springBaseJpaRepository = new SpringBaseJpaRepositoryImpl<>(entityType, entityManagerFactory, transactionManager);
+        springBaseJpaRepository.setComponentRegistry(componentRegistry);
+        return springBaseJpaRepository;
     }
 }

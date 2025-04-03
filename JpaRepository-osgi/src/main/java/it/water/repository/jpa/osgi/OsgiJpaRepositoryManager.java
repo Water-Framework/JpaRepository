@@ -17,9 +17,12 @@
 package it.water.repository.jpa.osgi;
 
 import it.water.core.api.model.BaseEntity;
+import it.water.core.api.registry.ComponentRegistry;
 import it.water.core.interceptors.annotations.FrameworkComponent;
+import it.water.core.interceptors.annotations.Inject;
 import it.water.repository.jpa.api.JpaRepository;
 import it.water.repository.jpa.api.JpaRepositoryManager;
+import lombok.Setter;
 
 /**
  * @Author Aristide Cittadino
@@ -27,9 +30,15 @@ import it.water.repository.jpa.api.JpaRepositoryManager;
  */
 @FrameworkComponent(services = JpaRepositoryManager.class, priority = 1)
 public class OsgiJpaRepositoryManager implements JpaRepositoryManager {
+
+    @Inject
+    @Setter
+    private ComponentRegistry componentRegistry;
+
     @Override
     public <T extends BaseEntity> JpaRepository<T> createConcreteRepository(Class<T> entityType, String persistenceUnit) {
-        return new OsgiBaseJpaRepository<T>(entityType, persistenceUnit) {
-        };
+        OsgiBaseJpaRepository<T> osgiBaseJpaRepository = new OsgiBaseJpaRepository<T>(entityType, persistenceUnit) {};
+        osgiBaseJpaRepository.setComponentRegistry(componentRegistry);
+        return osgiBaseJpaRepository;
     }
 }

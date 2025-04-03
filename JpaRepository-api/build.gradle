@@ -2,6 +2,9 @@
 dependencies {
 	//SLF4J
 	implementation group: 'org.slf4j', name: 'slf4j-api', version: project.slf4jVersion
+
+	implementation 'org.atteo.classindex:classindex:'+project.atteoClassIndexVersion
+	annotationProcessor('org.atteo.classindex:classindex:' + project.atteoClassIndexVersion)
 	implementation group: 'jakarta.persistence', name: 'jakarta.persistence-api', version: project.jakartaPersistenceVersion
 	implementation group: 'jakarta.transaction', name: 'jakarta.transaction-api', version: project.jakartaTransactionApiVersion
 	//lombok
@@ -19,6 +22,10 @@ dependencies {
 	implementation group:'it.water.repository', name:'Repository-persistence', version:project.waterVersion
 	implementation group:'it.water.repository', name:'Repository-service', version:project.waterVersion
 
+	//Atteo
+	testImplementation group:'it.water.core',name:'Core-bundle',version:project.waterVersion
+	testImplementation group:'it.water.core', name:'Core-service', version:project.waterVersion
+	testImplementation group:'it.water.core', name:'Core-testing-utils', version:project.waterVersion
 	testImplementation 'org.mockito:mockito-core:4.6.1'
 	testImplementation 'org.mockito:mockito-junit-jupiter:4.6.1'
 	testImplementation 'org.junit.jupiter:junit-jupiter-api:' + project.junitJupiterVersion

@@ -15,34 +15,55 @@
  */
 package it.water.repository.jpa;
 
+import it.water.core.api.model.PaginableResult;
+import it.water.core.api.registry.ComponentRegistry;
 import it.water.core.api.repository.query.Query;
 import it.water.core.api.repository.query.operands.FieldValueOperand;
 import it.water.core.api.repository.query.operations.*;
-import it.water.repository.entity.model.PaginatedResult;
+import it.water.core.api.service.Service;
+import it.water.core.interceptors.annotations.Inject;
+import it.water.core.testing.utils.junit.WaterTestExtension;
 import it.water.repository.entity.model.exceptions.DuplicateEntityException;
 import it.water.repository.entity.model.exceptions.NoResultException;
+import it.water.repository.jpa.api.TestEntityDetailsRepository;
+import it.water.repository.jpa.api.TestEntityRepository;
 import it.water.repository.jpa.constraints.DuplicateConstraintValidator;
 import it.water.repository.jpa.entity.TestEntity;
+import it.water.repository.jpa.entity.TestEntityDetails;
 import it.water.repository.jpa.query.PredicateBuilder;
-import it.water.repository.jpa.repository.TestEntityRepository;
+import it.water.repository.jpa.repository.TestEntityRepositoryImpl;
 import it.water.repository.query.order.DefaultQueryOrder;
 import it.water.repository.query.order.DefaultQueryOrderParameter;
-import org.junit.jupiter.api.*;
-
 import jakarta.persistence.criteria.Root;
+import lombok.Setter;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+
 import java.util.ArrayList;
 import java.util.List;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class JpaRepositoryTest {
+@ExtendWith({WaterTestExtension.class})
+class JpaRepositoryTest implements Service {
+
+    @Inject
+    @Setter
+    private ComponentRegistry componentRegistry;
+
+    @Inject
+    @Setter
     private TestEntityRepository testEntityRepository;
+
+    @Inject
+    @Setter
+    private TestEntityDetailsRepository testEntityDetailsRepository;
 
     @Test
     @Order(0)
     void checkPreconditions() {
-        Assertions.assertNotNull(getRepositoryTest());
-        Assertions.assertNotNull(getRepositoryTest().getEntityManager());
+        Assertions.assertNotNull(testEntityRepository);
+        Assertions.assertNotNull(testEntityRepository.getEntityManager());
     }
 
     @Test
@@ -56,9 +77,9 @@ class JpaRepositoryTest {
         Assertions.assertEquals(1, entity.getEntityVersion());
         Assertions.assertNotNull(entity.getEntityModifyDate());
         Assertions.assertNotNull(entity.getEntityCreateDate());
-        getRepositoryTest().getEntityManager().getTransaction().begin();
-        getRepositoryTest().persist(entity);
-        getRepositoryTest().getEntityManager().getTransaction().commit();
+        testEntityRepository.getEntityManager().getTransaction().begin();
+        testEntityRepository.persist(entity);
+        testEntityRepository.getEntityManager().getTransaction().commit();
         Assertions.assertTrue(entity.getId() > 0);
         Assertions.assertEquals(1, entity.getEntityVersion());
     }
@@ -70,22 +91,21 @@ class JpaRepositoryTest {
     void testDuplicateFails() {
         TestEntity entity = new TestEntity();
         entity.setUniqueField("a");
-        TestEntityRepository testRepo = getRepositoryTest();
         Assertions.assertThrows(DuplicateEntityException.class, () -> {
-            testRepo.persist(entity);
+            testEntityRepository.persist(entity);
         });
         //fails if cobined unique key constraint is matched
         entity.setUniqueField("a1");
         entity.setCombinedUniqueField1("b");
         entity.setCombinedUniqueField2("c");
         Assertions.assertThrows(DuplicateEntityException.class, () -> {
-            testRepo.persist(entity);
+            testEntityRepository.persist(entity);
         });
         //pass
         entity.setUniqueField("a1");
         entity.setCombinedUniqueField1("b1");
         entity.setCombinedUniqueField2("c");
-        getRepositoryTest().persist(entity);
+        testEntityRepository.persist(entity);
         Assertions.assertTrue(entity.getId() > 0);
     }
 
@@ -95,23 +115,23 @@ class JpaRepositoryTest {
         DefaultQueryOrder order = new DefaultQueryOrder();
         //test descending order
         order.addOrderField("uniqueField", false);
-        PaginatedResult<TestEntity> results = getRepositoryTest().findAll(4, 1, null, order);
+        PaginableResult<TestEntity> results = testEntityRepository.findAll(4, 1, null, order);
         Assertions.assertEquals(2, results.getResults().size());
         Assertions.assertEquals("a1", results.getResults().stream().findFirst().get().getUniqueField());
         //test query
-        Query filter = getRepositoryTest().getQueryBuilderInstance().field("uniqueField").equalTo("a").or(getRepositoryTest().getQueryBuilderInstance().field("uniqueField").equalTo("a1"));
-        Query filter1 = getRepositoryTest().getQueryBuilderInstance().createQueryFilter("uniqueField=a OR uniqueField=a1");
-        Assertions.assertNotNull(getRepositoryTest().getQueryBuilderInstance().createQueryFilter("(uniqueField=a)"));
+        Query filter = testEntityRepository.getQueryBuilderInstance().field("uniqueField").equalTo("a").or(testEntityRepository.getQueryBuilderInstance().field("uniqueField").equalTo("a1"));
+        Query filter1 = testEntityRepository.getQueryBuilderInstance().createQueryFilter("uniqueField=a OR uniqueField=a1");
+        Assertions.assertNotNull(testEntityRepository.getQueryBuilderInstance().createQueryFilter("(uniqueField=a)"));
         Assertions.assertEquals(filter.getDefinition(), filter1.getDefinition());
-        Assertions.assertNull(getRepositoryTest().getQueryBuilderInstance().createQueryFilter("-@das"));
-        results = getRepositoryTest().findAll(10, 1, filter, order);
+        Assertions.assertNull(testEntityRepository.getQueryBuilderInstance().createQueryFilter("-@das"));
+        results = testEntityRepository.findAll(10, 1, filter, order);
         Assertions.assertEquals(2, results.getResults().size());
 
-        filter = getRepositoryTest().getQueryBuilderInstance().field("uniqueField").equalTo("a1");
-        results = getRepositoryTest().findAll(10, 1, filter, order);
+        filter = testEntityRepository.getQueryBuilderInstance().field("uniqueField").equalTo("a1");
+        results = testEntityRepository.findAll(10, 1, filter, order);
         Assertions.assertEquals(1, results.getResults().size());
 
-        TestEntity specificEntity = getRepositoryTest().find(filter);
+        TestEntity specificEntity = testEntityRepository.find(filter);
         Assertions.assertNotNull(specificEntity);
         Assertions.assertEquals("a1", specificEntity.getUniqueField());
     }
@@ -119,16 +139,15 @@ class JpaRepositoryTest {
     @Test
     @Order(4)
     void testFindAndUpdate() {
-        TestEntity foundEntity = getRepositoryTest().find(getRepositoryTest().getQueryBuilderInstance().field("uniqueField").equalTo("a"));
+        TestEntity foundEntity = testEntityRepository.find(testEntityRepository.getQueryBuilderInstance().field("uniqueField").equalTo("a"));
         //find by id
-        Assertions.assertNotNull(getRepositoryTest().find(foundEntity.getId()));
+        Assertions.assertNotNull(testEntityRepository.find(foundEntity.getId()));
         foundEntity.setUniqueField("a2");
-        getRepositoryTest().update(foundEntity);
-        Assertions.assertEquals("a2", getRepositoryTest().find(foundEntity.getId()).getUniqueField());
-        TestEntityRepository testRepo = getRepositoryTest();
-        Query q = getRepositoryTest().getQueryBuilderInstance().field("uniqueField").equalTo("a");
+        testEntityRepository.update(foundEntity);
+        Assertions.assertEquals("a2", testEntityRepository.find(foundEntity.getId()).getUniqueField());
+        Query q = testEntityRepository.getQueryBuilderInstance().field("uniqueField").equalTo("a");
         Assertions.assertThrows(it.water.repository.entity.model.exceptions.NoResultException.class, () -> {
-            testRepo.find(q);
+            testEntityRepository.find(q);
         });
     }
 
@@ -139,13 +158,12 @@ class JpaRepositoryTest {
         newEntity.setUniqueField("uniqueField");
         newEntity.setCombinedUniqueField1("uniqueCombined1");
         newEntity.setCombinedUniqueField2("uniqueCombined12");
-        getRepositoryTest().persist(newEntity);
+        testEntityRepository.persist(newEntity);
         long entityId = newEntity.getId();
-        getRepositoryTest().getEntityManager().flush();
-        getRepositoryTest().remove(entityId);
-        TestEntityRepository testRepo = getRepositoryTest();
+        testEntityRepository.getEntityManager().flush();
+        testEntityRepository.remove(entityId);
         Assertions.assertThrows(it.water.repository.entity.model.exceptions.NoResultException.class, () -> {
-            testRepo.find(entityId);
+            testEntityRepository.find(entityId);
         });
     }
 
@@ -156,13 +174,12 @@ class JpaRepositoryTest {
         newEntity.setUniqueField("uniqueField");
         newEntity.setCombinedUniqueField1("uniqueCombined1");
         newEntity.setCombinedUniqueField2("uniqueCombined12");
-        getRepositoryTest().persist(newEntity);
+        testEntityRepository.persist(newEntity);
         long entityId = newEntity.getId();
-        getRepositoryTest().getEntityManager().flush();
-        getRepositoryTest().remove(newEntity);
-        TestEntityRepository testRepo = getRepositoryTest();
+        testEntityRepository.getEntityManager().flush();
+        testEntityRepository.remove(newEntity);
         Assertions.assertThrows(it.water.repository.entity.model.exceptions.NoResultException.class, () -> {
-            testRepo.find(entityId);
+            testEntityRepository.find(entityId);
         });
     }
 
@@ -177,21 +194,20 @@ class JpaRepositoryTest {
         newEntity.setUniqueField("uniqueField1");
         newEntity.setCombinedUniqueField1("uniqueCombined3");
         newEntity.setCombinedUniqueField2("uniqueCombined4");
-        getRepositoryTest().persist(newEntity);
-        getRepositoryTest().persist(newEntity1);
-        getRepositoryTest().getEntityManager().flush();
+        testEntityRepository.persist(newEntity);
+        testEntityRepository.persist(newEntity1);
+        testEntityRepository.getEntityManager().flush();
         long entityId = newEntity.getId();
         long entity1Id = newEntity1.getId();
         List<Long> ids = new ArrayList<>();
         ids.add(entityId);
         ids.add(entity1Id);
-        getRepositoryTest().removeAllByIds(ids);
-        TestEntityRepository testRepo = getRepositoryTest();
+        testEntityRepository.removeAllByIds(ids);
         Assertions.assertThrows(it.water.repository.entity.model.exceptions.NoResultException.class, () -> {
-            testRepo.find(entityId);
+            testEntityRepository.find(entityId);
         });
         Assertions.assertThrows(it.water.repository.entity.model.exceptions.NoResultException.class, () -> {
-            testRepo.find(entity1Id);
+            testEntityRepository.find(entity1Id);
         });
     }
 
@@ -206,29 +222,28 @@ class JpaRepositoryTest {
         newEntity.setUniqueField("uniqueField1");
         newEntity.setCombinedUniqueField1("uniqueCombined3");
         newEntity.setCombinedUniqueField2("uniqueCombined4");
-        getRepositoryTest().persist(newEntity);
-        getRepositoryTest().persist(newEntity1);
-        getRepositoryTest().getEntityManager().flush();
+        testEntityRepository.persist(newEntity);
+        testEntityRepository.persist(newEntity1);
+        testEntityRepository.getEntityManager().flush();
         long entityId = newEntity.getId();
         long entity1Id = newEntity1.getId();
         List<TestEntity> entities = new ArrayList<>();
         entities.add(newEntity);
         entities.add(newEntity1);
-        getRepositoryTest().removeAll(entities);
-        TestEntityRepository testRepo = getRepositoryTest();
+        testEntityRepository.removeAll(entities);
         Assertions.assertThrows(it.water.repository.entity.model.exceptions.NoResultException.class, () -> {
-            testRepo.find(entityId);
+            testEntityRepository.find(entityId);
         });
         Assertions.assertThrows(NoResultException.class, () -> {
-            testRepo.find(entity1Id);
+            testEntityRepository.find(entity1Id);
         });
     }
 
     @Test
     @Order(8)
     void testRemoveAll() {
-        getRepositoryTest().removeAll();
-        Assertions.assertEquals(0, getRepositoryTest().findAll(1, 1, null, null).getResults().size());
+        testEntityRepository.removeAll();
+        Assertions.assertEquals(0, testEntityRepository.findAll(1, 1, null, null).getResults().size());
     }
 
     @Test
@@ -248,7 +263,6 @@ class JpaRepositoryTest {
     @Test
     @Order(10)
     void testJavaxPredicateGeneration() {
-        TestEntityRepository testEntityRepository = getRepositoryTest();
         Root<TestEntity> root = testEntityRepository.getEntityManager().getCriteriaBuilder().createQuery(TestEntity.class).from(TestEntity.class);
         PredicateBuilder<TestEntity> predicateBuilder = new PredicateBuilder<>(root, testEntityRepository.getEntityManager().getCriteriaBuilder().createQuery(TestEntity.class), testEntityRepository.getEntityManager().getCriteriaBuilder());
         NotOperation notOperation = new NotOperation();
@@ -269,7 +283,7 @@ class JpaRepositoryTest {
         Assertions.assertNotNull(predicateBuilder.buildPredicate(equalToOperation));
 
         LowerThan lowerThanOperation = new LowerThan();
-        lowerThanOperation.defineOperands(getRepositoryTest().getQueryBuilderInstance().field("numberField"), new FieldValueOperand(10));
+        lowerThanOperation.defineOperands(testEntityRepository.getQueryBuilderInstance().field("numberField"), new FieldValueOperand(10));
         Assertions.assertEquals("numberField < 10", lowerThanOperation.getDefinition());
         Assertions.assertNotNull(predicateBuilder.buildPredicate(lowerThanOperation));
 
@@ -303,26 +317,54 @@ class JpaRepositoryTest {
     @Test
     @Order(11)
     void testBaseJpaRepositoryConstructors() {
-        Assertions.assertDoesNotThrow(() -> new TestEntityRepository(TestEntity.class,"water-default-persistence-unit"));
-        Assertions.assertDoesNotThrow(() -> new TestEntityRepository(TestEntity.class,"water-default-persistence-unit", getRepositoryTest().getEntityManager()));
-        Assertions.assertDoesNotThrow(() -> new TestEntityRepository(TestEntity.class, getRepositoryTest().getEntityManager()));
-        Assertions.assertDoesNotThrow(() -> new TestEntityRepository(TestEntity.class, getRepositoryTest().getEntityManager(),new DuplicateConstraintValidator()));
+        Assertions.assertDoesNotThrow(() -> new TestEntityRepositoryImpl());
+        Assertions.assertDoesNotThrow(() -> new TestEntityRepositoryImpl(TestEntity.class, "water-default-persistence-unit", testEntityRepository.getEntityManager()));
+        Assertions.assertDoesNotThrow(() -> new TestEntityRepositoryImpl(TestEntity.class, testEntityRepository.getEntityManager()));
+        Assertions.assertDoesNotThrow(() -> new TestEntityRepositoryImpl(TestEntity.class, testEntityRepository.getEntityManager(), new DuplicateConstraintValidator()));
+    }
+
+    @Test
+    @Order(12)
+    void testEntityExtension() {
+        TestEntity testEntity = new TestEntity();
+        TestEntityDetails testEntityDetails = new TestEntityDetails();
+        testEntityDetails.setExtensionField("extensionField");
+        testEntityDetails.setExtensionField2(2);
+
+        testEntity.setUniqueField("a");
+        testEntity.setCombinedUniqueField1("b");
+        testEntity.setCombinedUniqueField2("c");
+        //this will be done automatically in the rest module converting maps into extension
+        testEntity.setExtension(testEntityDetails);
+        testEntity = testEntityRepository.persist(testEntity);
+        testEntity = testEntityRepository.find(testEntity.getId());
+        //checking data is loaded into the extension object
+        Assertions.assertNotNull(testEntity.getExtension());
+        testEntityDetails = (TestEntityDetails) testEntity.getExtension();
+        Assertions.assertEquals("extensionField", testEntityDetails.getExtensionField());
+        Assertions.assertEquals(2, testEntityDetails.getExtensionField2());
+        Assertions.assertEquals(testEntity.getId(), testEntityDetails.getRelatedEntityId());
+        //Check updating
+        testEntityDetails.setExtensionField("extensionFieldUpdated");
+        testEntity.setExtension(testEntityDetails);
+        testEntity = testEntityRepository.update(testEntity);
+        testEntity = testEntityRepository.find(testEntity.getId());
+        testEntityDetails = (TestEntityDetails) testEntity.getExtension();
+        Assertions.assertEquals("extensionFieldUpdated", testEntityDetails.getExtensionField());
+        Assertions.assertEquals(2, testEntityDetails.getEntityVersion());
+        long toRemoveEntityId = testEntity.getId();
+        Query q = testEntityDetailsRepository.getQueryBuilderInstance().field("relatedEntityId").equalTo(toRemoveEntityId);
+        Assertions.assertDoesNotThrow(() -> testEntityDetailsRepository.find(q));
+        testEntityRepository.remove(testEntity);
+        Assertions.assertThrows(NoResultException.class, () -> testEntityDetailsRepository.find(q));
     }
 
 
-    private TestEntityRepository getRepositoryTest() {
-        if (this.testEntityRepository == null)
-            this.testEntityRepository = new TestEntityRepository(TestEntity.class);
-        return testEntityRepository;
-    }
-
-    private void createAndPersisteExampleEntity(){
-        TestEntity alreadyPresentEntity = new TestEntity();
-        alreadyPresentEntity.setUniqueField("a");
-        alreadyPresentEntity.setCombinedUniqueField1("b");
-        alreadyPresentEntity.setCombinedUniqueField2("c");
-        getRepositoryTest().getEntityManager().getTransaction().begin();
-        getRepositoryTest().persist(alreadyPresentEntity);
-        getRepositoryTest().getEntityManager().getTransaction().commit();
+    private void createAndPersisteExampleEntity() {
+        TestEntity testEntity = new TestEntity();
+        testEntity.setUniqueField("a");
+        testEntity.setCombinedUniqueField1("b");
+        testEntity.setCombinedUniqueField2("c");
+        testEntityRepository.persist(testEntity);
     }
 }

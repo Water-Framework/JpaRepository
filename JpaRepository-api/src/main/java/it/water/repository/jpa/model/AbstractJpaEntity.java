@@ -19,6 +19,7 @@ package it.water.repository.jpa.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonView;
 import it.water.core.api.model.BaseEntity;
+import it.water.core.api.model.EntityExtension;
 import it.water.core.api.service.rest.WaterJsonView;
 import it.water.repository.entity.model.AbstractEntity;
 import jakarta.persistence.*;
@@ -86,13 +87,13 @@ public abstract class AbstractJpaEntity extends AbstractEntity
     }
 
     @PreUpdate
-    private void preUpdate() {
+    protected void preUpdate() {
         this.setEntityModifyDate(new Date(Instant.now().toEpochMilli()));
         doPreUpdate();
     }
 
     @PrePersist
-    private void prePersist() {
+    protected void prePersist() {
         long nowMillis = Instant.now().toEpochMilli();
         Date now = new Date(nowMillis);
         this.setEntityModifyDate(now);
@@ -108,5 +109,19 @@ public abstract class AbstractJpaEntity extends AbstractEntity
     //can be overridden
     protected void doPreUpdate() {
         //do nothing
+    }
+
+    @Override
+    @JsonIgnore
+    @Transient
+    public boolean isExpandableEntity() {
+        return super.isExpandableEntity();
+    }
+
+    @JsonIgnore
+    @Transient
+    @Override
+    public EntityExtension getEntityExtension() {
+        return super.getEntityExtension();
     }
 }

@@ -16,7 +16,9 @@
 package it.water.repository.jpa.repository;
 
 import it.water.core.api.repository.RepositoryConstraintValidator;
+import it.water.core.interceptors.annotations.FrameworkComponent;
 import it.water.repository.jpa.BaseJpaRepositoryImpl;
+import it.water.repository.jpa.api.TestEntityRepository;
 import it.water.repository.jpa.entity.TestEntity;
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
@@ -25,25 +27,26 @@ import jakarta.transaction.Transactional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class TestEntityRepository extends BaseJpaRepositoryImpl<TestEntity> {
+@FrameworkComponent
+public class TestEntityRepositoryImpl extends BaseJpaRepositoryImpl<TestEntity> implements TestEntityRepository {
 
-    public TestEntityRepository(Class<TestEntity> type) {
-        super(type);
+    public TestEntityRepositoryImpl() {
+        super(TestEntity.class);
     }
 
-    public TestEntityRepository(Class<TestEntity> type, String persistenceUnitName) {
+    public TestEntityRepositoryImpl(Class<TestEntity> type, String persistenceUnitName) {
         super(type, persistenceUnitName);
     }
 
-    public TestEntityRepository(Class<TestEntity> type, String persistenceUnitName, EntityManager entityManager) {
+    public TestEntityRepositoryImpl(Class<TestEntity> type, String persistenceUnitName, EntityManager entityManager) {
         super(type, persistenceUnitName, entityManager);
     }
 
-    public TestEntityRepository(Class<TestEntity> type, EntityManager entityManager) {
+    public TestEntityRepositoryImpl(Class<TestEntity> type, EntityManager entityManager) {
         super(type, entityManager);
     }
 
-    public TestEntityRepository(Class<TestEntity> type, EntityManager entityManager, RepositoryConstraintValidator... dbConstraintValidators) {
+    public TestEntityRepositoryImpl(Class<TestEntity> type, EntityManager entityManager, RepositoryConstraintValidator... dbConstraintValidators) {
         super(type, entityManager, dbConstraintValidators);
     }
 

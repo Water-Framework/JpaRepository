@@ -17,9 +17,12 @@
 package it.water.repository.jpa.test.utils;
 
 import it.water.core.api.model.BaseEntity;
+import it.water.core.api.registry.ComponentRegistry;
 import it.water.core.interceptors.annotations.FrameworkComponent;
+import it.water.core.interceptors.annotations.Inject;
 import it.water.repository.jpa.api.JpaRepository;
 import it.water.repository.jpa.api.JpaRepositoryManager;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,9 +34,15 @@ import org.slf4j.LoggerFactory;
 public class TestJpaRepositoryManager implements JpaRepositoryManager {
     private Logger log = LoggerFactory.getLogger(TestJpaRepositoryManager.class);
 
+    @Inject
+    @Setter
+    private ComponentRegistry componentRegistry;
+
     @Override
     public <T extends BaseEntity> JpaRepository<T> createConcreteRepository(Class<T> entityType, String persistenceUnit) {
         log.debug("Loading Entity Manager for {}", entityType.getName());
-        return new TestBaseJpaRepositoryImpl<>(entityType,persistenceUnit);
+        TestBaseJpaRepositoryImpl<T> repository = new TestBaseJpaRepositoryImpl<>(entityType,persistenceUnit);
+        repository.setComponentRegistry(componentRegistry);
+        return repository;
     }
 }

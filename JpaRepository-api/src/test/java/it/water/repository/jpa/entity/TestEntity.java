@@ -15,8 +15,7 @@
  */
 package it.water.repository.jpa.entity;
 
-import it.water.repository.jpa.model.AbstractJpaEntity;
-
+import it.water.repository.jpa.model.AbstractJpaExpandableEntity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -27,7 +26,7 @@ import lombok.Setter;
 @Table(uniqueConstraints = {@UniqueConstraint(columnNames = "uniqueField"), @UniqueConstraint(columnNames = {"combinedUniqueField1", "combinedUniqueField2"})})
 @Getter
 @Setter
-public class TestEntity extends AbstractJpaEntity {
+public class TestEntity extends AbstractJpaExpandableEntity {
     private String uniqueField;
     private Double numberField;
     private String combinedUniqueField1;

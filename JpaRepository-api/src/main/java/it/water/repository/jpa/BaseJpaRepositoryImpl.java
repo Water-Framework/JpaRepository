@@ -19,12 +19,17 @@ package it.water.repository.jpa;
 
 import it.water.core.api.entity.owned.OwnedResource;
 import it.water.core.api.model.BaseEntity;
+import it.water.core.api.model.EntityExtension;
+import it.water.core.api.model.ExpandableEntity;
 import it.water.core.api.model.User;
+import it.water.core.api.registry.ComponentRegistry;
+import it.water.core.api.repository.BaseRepository;
 import it.water.core.api.repository.RepositoryConstraintValidator;
 import it.water.core.api.repository.query.Query;
 import it.water.core.api.repository.query.QueryBuilder;
 import it.water.core.api.repository.query.QueryOrder;
 import it.water.core.api.repository.query.QueryOrderParameter;
+import it.water.core.interceptors.annotations.Inject;
 import it.water.core.model.exceptions.WaterRuntimeException;
 import it.water.repository.entity.model.PaginatedResult;
 import it.water.repository.entity.model.exceptions.EntityNotFound;
@@ -45,11 +50,13 @@ import jakarta.persistence.spi.PersistenceUnitTransactionType;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.Getter;
+import lombok.Setter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 import java.util.*;
+import java.util.function.BiConsumer;
 
 
 /**
@@ -58,10 +65,16 @@ import java.util.*;
  *            This class implements all methods for basic CRUD operations defined in
  *            BaseRepository interface. These methods are reusable by all
  *            entities that interact with the platform.
- * @Author Aristide Cittadino.
+ * @Author Aristide Cittadino
  */
 public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements JpaRepository<T> {
     public static final String WATER_DEFAULT_PERSISTENCE_UNIT_NAME = "water-default-persistence-unit";
+
+    @Inject
+    @Setter
+    @Getter(AccessLevel.PROTECTED)
+    private ComponentRegistry componentRegistry;
+
     @Getter(AccessLevel.PROTECTED)
     private Logger log = LoggerFactory.getLogger(BaseJpaRepositoryImpl.class.getName());
 
@@ -92,6 +105,11 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
     private String persistenceUnitName;
 
     protected RepositoryConstraintValidatorsManager dbConstraintsValidatorManager;
+
+    @Override
+    public Class<T> getEntityType() {
+        return type;
+    }
 
     /**
      * Generic constructor it will try to load an entity manager finding persistence.xml inside project path using default persistence unit name
@@ -228,7 +246,19 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
      */
     @Override
     public T persist(T entity) {
-        return tx(Transactional.TxType.REQUIRED, em -> doPersist(entity, em));
+        return this.persist(entity, null);
+    }
+
+    /**
+     * Executes the runnable inside the persist transaction
+     *
+     * @param entity
+     * @param runnable
+     * @return
+     */
+    @Override
+    public T persist(T entity, Runnable runnable) {
+        return tx(Transactional.TxType.REQUIRED, em -> doPersist(entity, runnable, em));
     }
 
     /**
@@ -238,14 +268,18 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
      * @param em
      * @return
      */
-    protected T doPersist(T entity, EntityManager em) {
+    protected T doPersist(T entity, Runnable task, EntityManager em) {
         startTransactionIfNeeded(em);
         try {
             log.debug("Repository Saving entity {}: {}", this.type.getSimpleName(), entity);
             this.dbConstraintsValidatorManager.runCheck(entity, this.type, this);
             log.debug("Transaction found, invoke persist");
+            //managing expandable entity in the same transaction
             em.persist(entity);
+            doPersistOnExpandableEntity(entity);
             log.debug("Entity persisted: {}", entity);
+            if (task != null)
+                task.run();
             commitTransactionIfNeeded(em);
             return entity;
         } catch (RuntimeException e) {
@@ -258,12 +292,35 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
     }
 
     /**
+     * @param entity
+     */
+    private void doPersistOnExpandableEntity(T entity) {
+        processExpandableEntity(entity, (entityExtension, extensionRepository) -> {
+            //forcing extension to have same primary key as its master entity and primary key is createad automatically
+            entityExtension.setupExtensionFields(0, entity);
+            extensionRepository.persist(entityExtension);
+        });
+    }
+
+    /**
      * Update an entity in database
      * Can be overridden in order to change the logic how to retrieve entity manager
      */
     @Override
     public T update(T entity) {
-        return tx(Transactional.TxType.REQUIRED, em -> doUpdate(entity, em));
+        return update(entity, null);
+    }
+
+    /**
+     * Update and executes task inside the same transaction of the update
+     *
+     * @param entity
+     * @param runnable
+     * @return
+     */
+    @Override
+    public T update(T entity, Runnable runnable) {
+        return tx(Transactional.TxType.REQUIRED, em -> doUpdate(entity, runnable, em));
     }
 
     /**
@@ -273,7 +330,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
      * @param em
      * @return
      */
-    protected T doUpdate(T entity, EntityManager em) {
+    protected T doUpdate(T entity, Runnable task, EntityManager em) {
         try {
             startTransactionIfNeeded(em);
             log.debug("Repository Update entity {}: {}", this.type.getSimpleName(), entity);
@@ -290,11 +347,19 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
                 log.debug("Updating entity");
                 boolean upgradeVersionManually = !em.contains(entity);
                 T updateEntity = em.merge(entity);
+                //forcing the extension
                 if (upgradeVersionManually) {
                     //incresing manually version since entities can come basically from non managed contexts (like rest with jackson)
                     updateEntity.setEntityVersion(updateEntity.getEntityVersion().intValue() + 1);
                 }
                 log.debug("Entity merged: {}", entity);
+                //managing expandable entity
+                if (entity.isExpandableEntity()) {
+                    fillEntityWithExtension(updateEntity, entity.getEntityExtension());
+                    doUpdateOnExpandableEntity(updateEntity);
+                }
+                if (task != null)
+                    task.run();
                 commitTransactionIfNeeded(em);
                 return updateEntity;
             }
@@ -309,20 +374,59 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
     }
 
     /**
+     * @param entity
+     */
+    private void doUpdateOnExpandableEntity(T entity) {
+        processExpandableEntity(entity, (entityExtension, extensionRepository) -> {
+            boolean alreadyExists = true;
+            long extensionId = 0;
+            try {
+                Query q = findByRelatedEntityId(extensionRepository, entity);
+                BaseEntity extensionOnDb = extensionRepository.find(q);
+                extensionId = extensionOnDb.getId();
+            } catch (NoResultException e) {
+                alreadyExists = false;
+            }
+            //always force to have same entity id as its master entity
+            entityExtension.setupExtensionFields(extensionId, entity);
+            //entity is new lets persist it for the first time
+            if (!alreadyExists) {
+                extensionRepository.persist(entityExtension);
+            } else {
+                entityExtension = (EntityExtension) extensionRepository.update(entityExtension);
+            }
+            fillEntityWithExtension(entity, entityExtension);
+        });
+    }
+
+    /**
      * Remove an entity by id
      * Can be overridden in order to change the logic how to retrieve entity manager
      */
     @Override
     public void remove(long id) {
-        txExpr(Transactional.TxType.REQUIRED, em -> doRemove(id, em));
+        remove(id, null);
     }
 
-    protected void doRemove(long id, EntityManager em) {
+    /**
+     * Remove and entity by id and executes runnables inseide the same transaction
+     *
+     * @param id
+     * @param runnable
+     */
+    @Override
+    public void remove(long id, Runnable runnable) {
+        txExpr(Transactional.TxType.REQUIRED, em -> doRemove(id, runnable, em));
+    }
+
+    protected void doRemove(long id, Runnable task, EntityManager em) {
         try {
             startTransactionIfNeeded(em);
             log.debug("Repository Remove entity {} with id: {}", this.type.getSimpleName(), id);
             T entity = em.find(type, id);
             doRemove(entity, em);
+            if (task != null)
+                task.run();
             commitTransactionIfNeeded(em);
         } catch (RuntimeException e) {
             //only in context where @transactional is not supported
@@ -333,12 +437,26 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
         }
     }
 
+    /**
+     * @param entity
+     */
+    private void doRemoveOnExpandableEntity(T entity) {
+        processExpandableEntity(entity, (entityExtension, extensionRepository) -> {
+            //extension entity is filled in the remove method
+            BaseEntity extensionEntity = entity.getEntityExtension();
+            extensionRepository.remove(extensionEntity.getId());
+        });
+    }
+
     protected void doRemove(T entity, EntityManager em) {
         try {
             startTransactionIfNeeded(em);
             log.debug("Repository Remove entity {} with id: {}", this.type.getSimpleName(), entity.getId());
             entity = em.merge(entity);
+            fillEntityWithExtension(entity);
             em.remove(entity);
+            //process expandable entity
+            doRemoveOnExpandableEntity(entity);
             log.debug("Entity {}  with id: {}  removed", this.type.getSimpleName(), entity.getId());
             commitTransactionIfNeeded(em);
         } catch (RuntimeException e) {
@@ -392,7 +510,8 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
     public T find(long id) {
         log.debug("Repository Find entity {} with id: {}", this.type.getSimpleName(), id);
         Query filter = this.getQueryBuilderInstance().field("id").equalTo(id);
-        if (filter != null) return this.find(filter);
+        if (filter != null)
+            return this.find(filter);
         throw new NoResultException();
     }
 
@@ -435,6 +554,8 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
             log.debug("Found entity: {}", entity);
             //Detaching entity in order to prevent unwanted logic
             em.detach(entity);
+            //Managing extension
+            fillEntityWithExtension(entity);
             return entity;
         } catch (jakarta.persistence.NoResultException e) {
             return null;
@@ -471,6 +592,9 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
 
         Collection<T> results = q.getResultList();
         PaginatedResult<T> paginatedResult = new PaginatedResult<>(lastPageNumber, page, nextPage, delta, results);
+        //NOTE: we do not fill all entities with extension because it may lead to performance problem
+        //if the user needs the details in the find all, he can retrieve this data using the specific service
+        //and can do api or result composition in the client
         log.debug("Query results: {}", results);
         return paginatedResult;
     }
@@ -540,5 +664,58 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
      */
     protected String getPersistenceUnitName() {
         return persistenceUnitName;
+    }
+
+    /**
+     * Allow to process a task if an extension is found.
+     *
+     * @param entity
+     * @param task
+     */
+    private void processExpandableEntity(T entity, BiConsumer<EntityExtension, BaseRepository<BaseEntity>> task) {
+        EntityExtension extension = entity.getEntityExtension();
+        if (extension != null) {
+            log.debug("Entity {} is expandable search for an extension...", this.type.getName());
+            BaseRepository<BaseEntity> extensionRepository = (BaseRepository<BaseEntity>) this.componentRegistry.findEntityExtensionRepository(this.type);
+            if (extensionRepository != null) {
+                log.debug("Expansion found {} for entity {}, completing task", extensionRepository.getEntityType(), type.getName());
+                task.accept(extension, extensionRepository);
+            }
+        }
+    }
+
+
+    /**
+     * Fills the entity, eventually, with the extensioj if found
+     *
+     * @param entity
+     */
+    private void fillEntityWithExtension(T entity) {
+        if (entity.isExpandableEntity()) {
+            BaseRepository<?> baseRepository = this.componentRegistry.findEntityExtensionRepository(this.type);
+            if (baseRepository != null) {
+                try {
+                    //Entity extension should have the same id of the master entity
+                    Query q = findByRelatedEntityId(baseRepository, entity);
+                    EntityExtension ext = (EntityExtension) baseRepository.find(q);
+                    fillEntityWithExtension(entity, ext);
+                } catch (jakarta.persistence.NoResultException | NoResultException ex) {
+                    log.debug("No entity extension found for enitity {} with id {}", this.type.getName(), entity.getId());
+                }
+            }
+        }
+    }
+
+    /**
+     * @param entity
+     * @param ext
+     */
+    private void fillEntityWithExtension(T entity, EntityExtension ext) {
+        ExpandableEntity exp = (ExpandableEntity) entity;
+        exp.setExtension(ext);
+    }
+
+    private Query findByRelatedEntityId(BaseRepository<?> entityExpansionRepository, T entity) {
+        return entityExpansionRepository.getQueryBuilderInstance().field("relatedEntityId").equalTo(entity.getId());
     }
 }
