@@ -355,7 +355,8 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
                 log.debug("Entity merged: {}", entity);
                 //managing expandable entity
                 if (entity.isExpandableEntity()) {
-                    fillEntityWithExtension(updateEntity, entity.getEntityExtension());
+                    ExpandableEntity expandableEntity = (ExpandableEntity) entity;
+                    fillEntityWithExtension(updateEntity, expandableEntity.getExtension());
                     doUpdateOnExpandableEntity(updateEntity);
                 }
                 if (task != null)
@@ -443,7 +444,8 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
     private void doRemoveOnExpandableEntity(T entity) {
         processExpandableEntity(entity, (entityExtension, extensionRepository) -> {
             //extension entity is filled in the remove method
-            BaseEntity extensionEntity = entity.getEntityExtension();
+            ExpandableEntity expandableEntity = (ExpandableEntity) entity;
+            BaseEntity extensionEntity = expandableEntity.getExtension();
             extensionRepository.remove(extensionEntity.getId());
         });
     }
@@ -673,7 +675,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
      * @param task
      */
     private void processExpandableEntity(T entity, BiConsumer<EntityExtension, BaseRepository<BaseEntity>> task) {
-        EntityExtension extension = entity.getEntityExtension();
+        EntityExtension extension = entity.isExpandableEntity()?((ExpandableEntity)entity).getExtension():null;
         if (extension != null) {
             log.debug("Entity {} is expandable search for an extension...", this.type.getName());
             BaseRepository<BaseEntity> extensionRepository = (BaseRepository<BaseEntity>) this.componentRegistry.findEntityExtensionRepository(this.type);
