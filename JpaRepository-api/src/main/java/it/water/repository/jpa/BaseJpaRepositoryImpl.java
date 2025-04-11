@@ -339,9 +339,9 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
             //TO DO: check if it is useful or not
             T entityFromDb = em.find(type, entity.getId());
             if (entityFromDb instanceof OwnedResource ownedFromDb) {
-                User oldOwner = ownedFromDb.getUserOwner();
+                Long oldOwnerId = ownedFromDb.getOwnerUserId();
                 OwnedResource owned = (OwnedResource) entity;
-                owned.setUserOwner(oldOwner);
+                owned.setOwnerUserId(oldOwnerId);
             }
             if (entity.getId() > 0) {
                 log.debug("Updating entity");
