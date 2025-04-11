@@ -135,7 +135,7 @@ JpaRepository/
 │   │   │   ├── persistence.xml     - Persistence configuration file
 │   ├── build.gradle
 │   └── ...
-├── README.md                     - Project documentation 
+├── README.md                     - Project documentation.
 ```
 ## Getting Started
 
