@@ -43,7 +43,7 @@ public class PredicateBuilder<T> {
             Path p = getPathForFields((AbstractOperation) filter);
             FieldValueOperand fieldValue = (FieldValueOperand) binaryValueOperation.getOperand(1);
             if (filter instanceof EqualTo) {
-                return cb.equal(p, fieldValue.getValue());
+                return cb.equal(p, convertToEntityFieldType(p.getJavaType(),fieldValue.getValue()));
             } else if (filter instanceof NotEqualTo) {
                 return cb.notEqual(p, fieldValue.getValue());
             } else if (filter instanceof GreaterOrEqualThan) {
@@ -69,6 +69,26 @@ public class PredicateBuilder<T> {
             }
         }
         throw new UnsupportedOperationException("Invalid operation");
+    }
+
+    private Object convertToEntityFieldType(Class<?> type, Object value) {
+        if (value == null || type == null) return null;
+        String valueStr = value.toString();
+        if (type.equals(String.class)) {
+            return value;
+        } else if (type.equals(Integer.class) || type.equals(int.class)) {
+            return Integer.valueOf(valueStr);
+        } else if (type.equals(Long.class) || type.equals(long.class)) {
+            return Long.valueOf(valueStr);
+        } else if (type.equals(Boolean.class) || type.equals(boolean.class)) {
+            return Boolean.valueOf(valueStr);
+        } else if (type.equals(Double.class) || type.equals(double.class)) {
+            return Double.valueOf(valueStr);
+        } else if (type.equals(Float.class) || type.equals(float.class)) {
+            return Float.valueOf(valueStr);
+        }
+
+        throw new IllegalArgumentException("Not supported type: " + type.getName());
     }
 
     /**

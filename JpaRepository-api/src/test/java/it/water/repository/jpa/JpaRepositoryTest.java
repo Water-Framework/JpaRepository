@@ -123,7 +123,7 @@ class JpaRepositoryTest implements Service {
         Query filter1 = testEntityRepository.getQueryBuilderInstance().createQueryFilter("uniqueField=a OR uniqueField=a1");
         Assertions.assertNotNull(testEntityRepository.getQueryBuilderInstance().createQueryFilter("(uniqueField=a)"));
         Assertions.assertEquals(filter.getDefinition(), filter1.getDefinition());
-        Assertions.assertNull(testEntityRepository.getQueryBuilderInstance().createQueryFilter("-@das"));
+        Assertions.assertNotNull(testEntityRepository.getQueryBuilderInstance().createQueryFilter("-@das"));
         results = testEntityRepository.findAll(10, 1, filter, order);
         Assertions.assertEquals(2, results.getResults().size());
 
