@@ -22,7 +22,6 @@ import it.water.core.api.registry.ComponentRegistration;
 import it.water.core.api.registry.ComponentRegistry;
 import it.water.core.api.registry.filter.ComponentFilter;
 import it.water.core.api.repository.query.Query;
-import it.water.core.bundle.PropertiesNames;
 import it.water.core.model.exceptions.ValidationException;
 import it.water.core.registry.model.ComponentConfigurationFactory;
 import it.water.implementation.spring.interceptors.SpringServiceInterceptor;
@@ -227,7 +226,7 @@ class SpringApplicationTest {
     @Test
     void checkLoadedProperties() {
         assertNotNull(waterApplicationProperties);
-        assertEquals("true", waterApplicationProperties.getProperty(PropertiesNames.HYPERIOT_TEST_MODE));
+        assertEquals("true", waterApplicationProperties.getProperty("water.testMode"));
     }
 
     @Test
