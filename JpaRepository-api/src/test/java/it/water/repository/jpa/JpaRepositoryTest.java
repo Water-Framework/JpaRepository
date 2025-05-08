@@ -30,6 +30,7 @@ import it.water.repository.jpa.api.TestEntityRepository;
 import it.water.repository.jpa.constraints.DuplicateConstraintValidator;
 import it.water.repository.jpa.entity.TestEntity;
 import it.water.repository.jpa.entity.TestEntityDetails;
+import it.water.repository.jpa.model.AbstractJpaExpandableEntity;
 import it.water.repository.jpa.query.PredicateBuilder;
 import it.water.repository.jpa.repository.TestEntityRepositoryImpl;
 import it.water.repository.query.order.DefaultQueryOrder;
@@ -40,6 +41,7 @@ import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -262,7 +264,7 @@ class JpaRepositoryTest implements Service {
 
     @Test
     @Order(10)
-    void testJavaxPredicateGeneration() {
+    void testPredicateGeneration() {
         Root<TestEntity> root = testEntityRepository.getEntityManager().getCriteriaBuilder().createQuery(TestEntity.class).from(TestEntity.class);
         PredicateBuilder<TestEntity> predicateBuilder = new PredicateBuilder<>(root, testEntityRepository.getEntityManager().getCriteriaBuilder().createQuery(TestEntity.class), testEntityRepository.getEntityManager().getCriteriaBuilder());
         NotOperation notOperation = new NotOperation();
@@ -328,6 +330,11 @@ class JpaRepositoryTest implements Service {
     void testEntityExtension() {
         TestEntity testEntity = new TestEntity();
         TestEntityDetails testEntityDetails = new TestEntityDetails();
+        //for coverage
+        AbstractJpaExpandableEntity expandableEntity = (AbstractJpaExpandableEntity) testEntity;
+        expandableEntity.setExtraFields("test", "test");
+        expandableEntity.setExtraFields(new HashMap<>());
+        Assertions.assertNotNull(expandableEntity.getExtraFields());
         testEntityDetails.setExtensionField("extensionField");
         testEntityDetails.setExtensionField2(2);
 
@@ -357,6 +364,15 @@ class JpaRepositoryTest implements Service {
         Assertions.assertDoesNotThrow(() -> testEntityDetailsRepository.find(q));
         testEntityRepository.remove(testEntity);
         Assertions.assertThrows(NoResultException.class, () -> testEntityDetailsRepository.find(q));
+    }
+
+    @Test
+    @Order(13)
+    void testPersistenceUnitInfo() {
+        WaterPersistenceUnitInfo waterPersistenceUnitInfo = new WaterPersistenceUnitInfo("water-default-persistence", TestEntity.class);
+        Assertions.assertDoesNotThrow(() -> waterPersistenceUnitInfo.addManagedClass("classProva"));
+        Assertions.assertNotNull(waterPersistenceUnitInfo.getPersistenceProviderClassName());
+        Assertions.assertNotNull(waterPersistenceUnitInfo.getPersistenceXMLSchemaVersion());
     }
 
 
