@@ -16,15 +16,27 @@
 
 package it.water.repository.jpa.model;
 
+import java.time.Instant;
+import java.util.Date;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonView;
+
 import it.water.core.api.model.BaseEntity;
 import it.water.core.api.service.rest.WaterJsonView;
 import it.water.repository.entity.model.AbstractEntity;
-import jakarta.persistence.*;
-
-import java.time.Instant;
-import java.util.Date;
+import jakarta.persistence.Column;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Temporal;
+import jakarta.persistence.TemporalType;
+import jakarta.persistence.Transient;
+import jakarta.persistence.Version;
+import lombok.EqualsAndHashCode;
 
 
 /**
@@ -33,6 +45,7 @@ import java.util.Date;
  */
 @MappedSuperclass
 @Embeddable
+@EqualsAndHashCode(callSuper = true)
 public abstract class AbstractJpaEntity extends AbstractEntity
         implements BaseEntity {
 

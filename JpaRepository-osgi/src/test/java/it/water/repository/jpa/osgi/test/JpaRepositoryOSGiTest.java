@@ -79,6 +79,7 @@ public class JpaRepositoryOSGiTest extends KarafTestSupport {
         Assert.assertEquals("field2", testEntity.getField2());
     }
 
+    @SuppressWarnings("unused")
     @Test
     public void testFindEntitySystemApi() {
         ComponentRegistry waterComponentRegistry = getOsgiService(ComponentRegistry.class);

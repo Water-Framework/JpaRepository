@@ -17,11 +17,23 @@
 
 package it.water.repository.jpa;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.function.BiConsumer;
+
+import javax.sql.DataSource;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import it.water.core.api.entity.owned.OwnedResource;
 import it.water.core.api.model.BaseEntity;
 import it.water.core.api.model.EntityExtension;
 import it.water.core.api.model.ExpandableEntity;
-import it.water.core.api.model.User;
 import it.water.core.api.registry.ComponentRegistry;
 import it.water.core.api.repository.BaseRepository;
 import it.water.core.api.repository.RepositoryConstraintValidator;
@@ -42,7 +54,11 @@ import it.water.repository.query.DefaultQueryBuilder;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.PersistenceException;
-import jakarta.persistence.criteria.*;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Order;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import jakarta.persistence.spi.PersistenceProvider;
 import jakarta.persistence.spi.PersistenceProviderResolver;
 import jakarta.persistence.spi.PersistenceProviderResolverHolder;
@@ -51,12 +67,6 @@ import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.sql.DataSource;
-import java.util.*;
-import java.util.function.BiConsumer;
 
 
 /**
@@ -542,6 +552,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
         return entity;
     }
 
+    @SuppressWarnings("unchecked")
     protected T doFind(Query filter, EntityManager em) {
         log.debug("Repository Find entity {} with filter: {}", this.type.getSimpleName(), filter);
         log.debug("Transaction found, invoke find");
@@ -570,12 +581,12 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
      * Find all entity
      * Can be overridden in order to change the logic how to retrieve entity manager
      */
-    @SuppressWarnings("unchecked")
     @Override
     public PaginatedResult<T> findAll(int delta, int page, Query filter, QueryOrder queryOrder) {
         return tx(Transactional.TxType.SUPPORTS, em -> doFindAll(delta, page, filter, queryOrder, em));
     }
 
+    @SuppressWarnings("unchecked")
     protected PaginatedResult<T> doFindAll(int delta, int page, Query filter, QueryOrder queryOrder, EntityManager em) {
         log.debug("Repository Find All entities {}", this.type.getSimpleName());
         jakarta.persistence.Query q = createQuery(filter, queryOrder, em);
@@ -678,6 +689,7 @@ public abstract class BaseJpaRepositoryImpl<T extends BaseEntity> implements Jpa
         EntityExtension extension = entity.isExpandableEntity()?((ExpandableEntity)entity).getExtension():null;
         if (extension != null) {
             log.debug("Entity {} is expandable search for an extension...", this.type.getName());
+            @SuppressWarnings("unchecked")
             BaseRepository<BaseEntity> extensionRepository = (BaseRepository<BaseEntity>) this.componentRegistry.findEntityExtensionRepository(this.type);
             if (extensionRepository != null) {
                 log.debug("Expansion found {} for entity {}, completing task", extensionRepository.getEntityType(), type.getName());

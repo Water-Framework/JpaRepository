@@ -59,8 +59,9 @@ public class RepositoryFactory<R extends JpaRepository<T, K>, T, K> extends JpaR
         this.platformTransactionManager = transactionManager;
     }
 
+    @SuppressWarnings("null")
     @Override
-    protected RepositoryFactorySupport createRepositoryFactory(EntityManager entityManager) {
+    protected RepositoryFactorySupport createRepositoryFactory(@SuppressWarnings("null") EntityManager entityManager) {
         WaterJpaExecutorFactory factory = new WaterJpaExecutorFactory(entityManager, this.platformTransactionManager);
         factory.setEntityPathResolver(entityPathResolver);
         factory.setEscapeCharacter(escapeCharacter);
@@ -72,7 +73,7 @@ public class RepositoryFactory<R extends JpaRepository<T, K>, T, K> extends JpaR
 
     @Override
     @Autowired
-    public void setEntityPathResolver(ObjectProvider<EntityPathResolver> resolver) {
+    public void setEntityPathResolver(@SuppressWarnings("null") ObjectProvider<EntityPathResolver> resolver) {
         this.entityPathResolver = resolver.getIfAvailable(() -> SimpleEntityPathResolver.INSTANCE);
     }
 
@@ -115,17 +116,20 @@ public class RepositoryFactory<R extends JpaRepository<T, K>, T, K> extends JpaR
          *
          * @return
          */
+        @SuppressWarnings("unused")
         public PlatformTransactionManager getPlatformTransactionManager() {
             return platformTransactionManager;
         }
 
+        @SuppressWarnings({ "null", "unchecked", "rawtypes" })
         @Override
-        protected Class getRepositoryBaseClass(RepositoryMetadata metadata) {
+        protected Class getRepositoryBaseClass(@SuppressWarnings("null") RepositoryMetadata metadata) {
             return JpaRepositoryImpl.class;
         }
 
+        @SuppressWarnings({ "null", "unchecked", "rawtypes" })
         @Override
-        protected JpaRepositoryImplementation<?, ?> getTargetRepository(RepositoryInformation information, EntityManager entityManager) {
+        protected JpaRepositoryImplementation<?, ?> getTargetRepository(@SuppressWarnings("null") RepositoryInformation information, @SuppressWarnings("null") EntityManager entityManager) {
             JpaEntityInformation<?, Serializable> entityInformation = getEntityInformation(information.getDomainType());
             return new JpaRepositoryImpl(entityInformation, entityManager, platformTransactionManager);
         }

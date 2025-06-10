@@ -24,12 +24,14 @@ import jakarta.persistence.Entity;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Entity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
 @Data
+@EqualsAndHashCode(of = {"field1","field2"}, callSuper = true)
 public class TestEntity extends AbstractJpaEntity {
     @NoMalitiusCode
     private String field1;

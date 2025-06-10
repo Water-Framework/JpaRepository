@@ -21,10 +21,12 @@ import jakarta.persistence.Access;
 import jakarta.persistence.AccessType;
 import jakarta.persistence.Entity;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 
 @Entity
 @Access(AccessType.FIELD)
 @Data
+@EqualsAndHashCode(callSuper = true)
 public class TestUtilsEntity extends AbstractEntity {
 
     private String exampleField;

@@ -17,15 +17,14 @@
 
 package it.water.repository.jpa.spring.bundle.service;
 
-import it.water.core.api.permission.SecurityContext;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import it.water.core.api.registry.ComponentRegistry;
-import it.water.core.api.service.BaseEntitySystemApi;
 import it.water.repository.jpa.spring.bundle.api.TestEntityApi;
 import it.water.repository.jpa.spring.bundle.api.TestEntitySystemApi;
 import it.water.repository.jpa.spring.bundle.persistence.entity.TestEntity;
 import it.water.repository.service.BaseEntityServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 
 @Service

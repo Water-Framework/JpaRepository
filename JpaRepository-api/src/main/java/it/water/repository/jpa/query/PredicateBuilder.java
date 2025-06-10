@@ -29,9 +29,11 @@ import java.util.concurrent.atomic.AtomicReference;
 @AllArgsConstructor
 public class PredicateBuilder<T> {
     private Root<T> entityDef;
+    @SuppressWarnings("unused")
     private CriteriaQuery<?> cq;
     private CriteriaBuilder cb;
 
+    @SuppressWarnings({ "rawtypes", "unchecked" })
     public Predicate buildPredicate(Query filter) {
         if (filter instanceof AndOperation andOperation) {
             return cb.and(this.buildPredicate(andOperation.getOperand(0)), this.buildPredicate(andOperation.getOperand(1)));

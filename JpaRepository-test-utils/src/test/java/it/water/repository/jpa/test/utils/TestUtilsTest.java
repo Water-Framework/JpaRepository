@@ -16,19 +16,24 @@
 
 package it.water.repository.jpa.test.utils;
 
+import java.lang.reflect.Proxy;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.extension.ExtendWith;
+
 import it.water.core.api.service.Service;
 import it.water.core.interceptors.annotations.Inject;
 import it.water.core.testing.utils.interceptors.TestServiceProxy;
 import it.water.core.testing.utils.junit.WaterTestExtension;
-import it.water.repository.jpa.BaseJpaRepositoryImpl;
 import it.water.repository.jpa.api.JpaRepository;
 import it.water.repository.jpa.api.JpaRepositoryManager;
 import jakarta.transaction.Transactional;
 import lombok.Setter;
-import org.junit.jupiter.api.*;
-import org.junit.jupiter.api.extension.ExtendWith;
-
-import java.lang.reflect.Proxy;
 
 @Setter
 @ExtendWith(WaterTestExtension.class)
@@ -44,6 +49,7 @@ class TestUtilsTest implements Service {
     @Order(1)
     void testJpaRepositoryManager() {
         Assertions.assertNotNull(testJpaRepositoryManager);
+        @SuppressWarnings("rawtypes")
         TestServiceProxy<?> testServiceProxy = (TestServiceProxy)Proxy.getInvocationHandler(testJpaRepositoryManager);
         Assertions.assertTrue(testServiceProxy.getRealService() instanceof TestJpaRepositoryManager);
         sampleRepo = testJpaRepositoryManager.createConcreteRepository(TestUtilsEntity.class, "water-default-persistence-unit");
@@ -53,7 +59,7 @@ class TestUtilsTest implements Service {
     @Test
     @Order(2)
     void testTransactions(){
-        Assertions.assertDoesNotThrow(() -> sampleRepo.txExpr(Transactional.TxType.REQUIRED,(entityManager) -> System.out.printf("sample transaction")));
-        Assertions.assertDoesNotThrow(() -> sampleRepo.tx(Transactional.TxType.REQUIRED,(entityManager) -> System.out.printf("sample transaction")));
+        Assertions.assertDoesNotThrow(() -> sampleRepo.txExpr(Transactional.TxType.REQUIRED,entityManager -> System.out.println("sample transaction")));
+        Assertions.assertDoesNotThrow(() -> sampleRepo.tx(Transactional.TxType.REQUIRED,entityManager -> System.out.printf("sample transaction")));
     }
 }

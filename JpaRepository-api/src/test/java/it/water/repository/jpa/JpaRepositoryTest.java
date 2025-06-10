@@ -376,6 +376,7 @@ class JpaRepositoryTest implements Service {
     }
 
 
+    @SuppressWarnings("unused")
     private void createAndPersisteExampleEntity() {
         TestEntity testEntity = new TestEntity();
         testEntity.setUniqueField("a");

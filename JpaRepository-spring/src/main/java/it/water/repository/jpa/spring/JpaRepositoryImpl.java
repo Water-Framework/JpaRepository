@@ -70,6 +70,7 @@ public class JpaRepositoryImpl<T extends AbstractJpaEntity> extends SimpleJpaRep
         return repository.getEntityType();
     }
 
+    @SuppressWarnings("null")
     @Override
     public List<T> findAll() {
         List<T> results = new ArrayList<>();
@@ -77,8 +78,9 @@ public class JpaRepositoryImpl<T extends AbstractJpaEntity> extends SimpleJpaRep
         return results;
     }
 
+    @SuppressWarnings("null")
     @Override
-    public List<T> findAllById(Iterable<Long> longs) {
+    public List<T> findAllById(@SuppressWarnings("null") Iterable<Long> longs) {
         Iterator<Long> it = longs.iterator();
         if (!it.hasNext()) return Collections.emptyList();
         List<T> results = new ArrayList<>();
@@ -96,22 +98,24 @@ public class JpaRepositoryImpl<T extends AbstractJpaEntity> extends SimpleJpaRep
     }
 
     @Override
-    public void deleteById(Long aLong) {
+    public void deleteById(@SuppressWarnings("null") Long aLong) {
         repository.remove(aLong);
     }
 
     @Override
-    public void delete(T entity) {
+    public void delete(@SuppressWarnings("null") T entity) {
         repository.remove(entity.getId());
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public void deleteAllById(Iterable<? extends Long> longs) {
+    public void deleteAllById(@SuppressWarnings("null") Iterable<? extends Long> longs) {
         repository.removeAllByIds((Iterable<Long>) longs);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public void deleteAll(Iterable<? extends T> entities) {
+    public void deleteAll(@SuppressWarnings("null") Iterable<? extends T> entities) {
         repository.removeAll((Iterable<T>) entities);
     }
 
@@ -120,24 +124,27 @@ public class JpaRepositoryImpl<T extends AbstractJpaEntity> extends SimpleJpaRep
         repository.removeAll();
     }
 
+    @SuppressWarnings({ "null", "unchecked" })
     @Override
-    public <S extends T> S save(S entity) {
+    public <S extends T> S save(@SuppressWarnings("null") S entity) {
         return (S) repository.persist(entity);
     }
 
+    @SuppressWarnings("null")
     @Override
-    public <S extends T> List<S> saveAll(Iterable<S> entities) {
+    public <S extends T> List<S> saveAll(@SuppressWarnings("null") Iterable<S> entities) {
         entities.forEach(entity -> repository.persist(entity));
         return (List<S>) entities;
     }
 
+    @SuppressWarnings("null")
     @Override
-    public Optional<T> findById(Long aLong) {
+    public Optional<T> findById(@SuppressWarnings("null") Long aLong) {
         return Optional.of(repository.find(aLong));
     }
 
     @Override
-    public boolean existsById(Long aLong) {
+    public boolean existsById(@SuppressWarnings("null") Long aLong) {
         try {
             return findById(aLong).isPresent();
         } catch (NoResultException e) {

@@ -29,13 +29,15 @@ public class TestBaseJpaRepositoryImpl<T extends BaseEntity> extends BaseJpaRepo
         super(type, persistenceUnitName);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public void txExpr(Transactional.TxType txType, Consumer function) {
+    public void txExpr(Transactional.TxType txType, @SuppressWarnings("rawtypes") Consumer function) {
         function.accept(this.getEntityManager());
     }
 
+    @SuppressWarnings("unchecked")
     @Override
-    public Object tx(Transactional.TxType txType, Function function) {
+    public Object tx(Transactional.TxType txType, @SuppressWarnings("rawtypes") Function function) {
         return function.apply(this.getEntityManager());
     }
 }
