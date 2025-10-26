@@ -21,19 +21,24 @@ import it.water.core.api.repository.query.operands.FieldValueOperand;
 import it.water.core.api.repository.query.operations.*;
 import jakarta.persistence.criteria.*;
 import lombok.AllArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 @AllArgsConstructor
 public class PredicateBuilder<T> {
+    private static Logger logger = LoggerFactory.getLogger(PredicateBuilder.class);
     private Root<T> entityDef;
     @SuppressWarnings("unused")
     private CriteriaQuery<?> cq;
     private CriteriaBuilder cb;
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public Predicate buildPredicate(Query filter) {
         if (filter instanceof AndOperation andOperation) {
             return cb.and(this.buildPredicate(andOperation.getOperand(0)), this.buildPredicate(andOperation.getOperand(1)));
@@ -45,21 +50,37 @@ public class PredicateBuilder<T> {
             Path p = getPathForFields((AbstractOperation) filter);
             FieldValueOperand fieldValue = (FieldValueOperand) binaryValueOperation.getOperand(1);
             if (filter instanceof EqualTo) {
-                return cb.equal(p, convertToEntityFieldType(p.getJavaType(),fieldValue.getValue()));
+                return cb.equal(p, convertToEntityFieldType(p.getJavaType(), fieldValue.getValue()));
             } else if (filter instanceof NotEqualTo) {
                 return cb.notEqual(p, fieldValue.getValue());
             } else if (filter instanceof GreaterOrEqualThan) {
-                Double d = Double.parseDouble(fieldValue.getValue().toString());
-                return cb.greaterThanOrEqualTo(p, d);
+                if (fieldValue.getValue() instanceof Date dateValue) {
+                    return cb.greaterThanOrEqualTo(p, dateValue);
+                } else {
+                    Double d = Double.parseDouble(fieldValue.getValue().toString());
+                    return cb.greaterThanOrEqualTo(p, d);
+                }
             } else if (filter instanceof GreaterThan) {
-                Double d = Double.parseDouble(fieldValue.getValue().toString());
-                return cb.greaterThan(p, d);
+                if (fieldValue.getValue() instanceof Date dateValue) {
+                    return cb.greaterThan(p, dateValue);
+                } else {
+                    Double d = Double.parseDouble(fieldValue.getValue().toString());
+                    return cb.greaterThan(p, d);
+                }
             } else if (filter instanceof LowerOrEqualThan) {
-                Double d = Double.parseDouble(fieldValue.getValue().toString());
-                return cb.lessThanOrEqualTo(p, d);
+                if (fieldValue.getValue() instanceof Date dateValue) {
+                    return cb.lessThanOrEqualTo(p, dateValue);
+                } else {
+                    Double d = Double.parseDouble(fieldValue.getValue().toString());
+                    return cb.lessThanOrEqualTo(p, d);
+                }
             } else if (filter instanceof LowerThan) {
-                Double d = Double.parseDouble(fieldValue.getValue().toString());
-                return cb.lessThan(p, d);
+                if (fieldValue.getValue() instanceof Date dateValue) {
+                    return cb.lessThan(p, dateValue);
+                } else {
+                    Double d = Double.parseDouble(fieldValue.getValue().toString());
+                    return cb.lessThan(p, d);
+                }
             } else if (filter instanceof Like) {
                 return cb.like(p, fieldValue.getDefinition());
             }
@@ -88,9 +109,69 @@ public class PredicateBuilder<T> {
             return Double.valueOf(valueStr);
         } else if (type.equals(Float.class) || type.equals(float.class)) {
             return Float.valueOf(valueStr);
+        } else if (isDateType(type)) {
+            return convertToEpochMillis(value);
+        } else if (type.isEnum()) {
+            Class<? extends Enum> enumType = (Class<? extends Enum>) type;
+            Optional<?> enumValue = toEnum(enumType, value);
+            if (enumValue.isPresent())
+                return enumValue.get();
         }
 
-        throw new IllegalArgumentException("Not supported type: " + type.getName());
+        throw new IllegalArgumentException("Not supported type: " + type.getName() + " with value: " + value);
+    }
+
+    public static <E extends Enum<E>> Optional<E> toEnum(Class<E> enumType, Object obj) {
+        if (obj == null || enumType == null || !enumType.isEnum()) {
+            return Optional.empty();
+        }
+
+        if (enumType.isInstance(obj)) {
+            return Optional.of(enumType.cast(obj));
+        }
+
+        if (obj instanceof String s) {
+            try {
+                return Optional.of(Enum.valueOf(enumType, s));
+            } catch (IllegalArgumentException ignored) {
+                logger.error("No enum constant {}, of {}", enumType.getName(), s);
+            }
+        }
+
+        if (obj instanceof Number n) {
+            int ordinal = n.intValue();
+            E[] constants = enumType.getEnumConstants();
+            if (ordinal >= 0 && ordinal < constants.length) {
+                return Optional.of(constants[ordinal]);
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private boolean isDateType(Class<?> type) {
+        return java.util.Date.class.isAssignableFrom(type)
+                || java.sql.Date.class.isAssignableFrom(type)
+                || java.sql.Timestamp.class.isAssignableFrom(type)
+                || java.time.temporal.Temporal.class.isAssignableFrom(type) // copre Instant, LocalDateTime, ecc.
+                || java.time.Instant.class.isAssignableFrom(type);
+    }
+
+    private long convertToEpochMillis(Object value) {
+        if (value instanceof java.util.Date d) {
+            return d.getTime();
+        } else if (value instanceof java.sql.Timestamp t) {
+            return t.getTime();
+        } else if (value instanceof java.sql.Date sd) {
+            return sd.getTime();
+        } else if (value instanceof java.time.Instant i) {
+            return i.toEpochMilli();
+        } else if (value instanceof java.time.LocalDateTime ldt) {
+            return ldt.atZone(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+        } else if (value instanceof java.time.LocalDate ld) {
+            return ld.atStartOfDay(java.time.ZoneId.systemDefault()).toInstant().toEpochMilli();
+        }
+        throw new IllegalArgumentException("Unsupported date type: " + value.getClass().getName());
     }
 
     /**
