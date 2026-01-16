@@ -17,7 +17,9 @@ package it.water.repository.jpa.query;
 
 import it.water.core.api.repository.query.Query;
 import it.water.core.api.repository.query.operands.FieldNameOperand;
+import it.water.core.api.repository.query.operands.FieldValueListOperand;
 import it.water.core.api.repository.query.operands.FieldValueOperand;
+import it.water.core.api.repository.query.operands.ParenthesisNode;
 import it.water.core.api.repository.query.operations.*;
 import jakarta.persistence.criteria.*;
 import lombok.AllArgsConstructor;
@@ -224,14 +226,17 @@ public class PredicateBuilder<T> {
         final AtomicReference<FieldNameOperand> field = new AtomicReference<>();
         binaryValueListOperation.operands().stream().forEach(operand -> {
             boolean isOperand = true;
+            if(operand instanceof ParenthesisNode parenthesisNode){
+                operand = parenthesisNode.getOperand(0);
+            }
             if ((operand instanceof FieldNameOperand fieldNameOperand) && field.get() == null) {
                 field.set(fieldNameOperand);
                 isOperand = false;
-            } else if (!(operand instanceof FieldValueOperand) || ((operand instanceof FieldNameOperand) && field.get() != null)) {
+            } else if (!(operand instanceof FieldValueListOperand) || ((operand instanceof FieldNameOperand) && field.get() != null)) {
                 throw new IllegalArgumentException("Invalid argument for expression, value needed");
             }
             if (isOperand)
-                operandValues.add(((FieldValueOperand) operand).getValue());
+                operandValues.addAll(((FieldValueListOperand) operand).getValue());
         });
         return operandValues;
     }
